@@ -1,0 +1,26 @@
+/* ============================================================================
+   Bascule mobile : rendu le plus "figé" possible façon application, pas de
+   zoom intempestif à la saisie.
+   ============================================================================ */
+
+@media (max-width: 767px) {
+  .etape { padding: calc(20px + env(safe-area-inset-top, 0px)) 20px 7vh; }
+  .chapitre-texte { margin-bottom: 20px; }
+  .chapitre-texte h1 { font-size: clamp(22px, 8vw, 30px); }
+  .chapitre-texte h2 { font-size: clamp(19px, 7vw, 24px); }
+  .chapitre-texte p { font-size: 14.5px; }
+  .chapitre-form { padding: 20px 18px; }
+  .rubrique-titre { font-size: 18px; margin-bottom: 16px; }
+
+  /* Zone tactile minimale, et surtout : jamais moins de 16px sur les champs
+     de saisie, sinon Safari iOS zoome automatiquement dessus au focus. */
+  .champ-pub input, .champ-pub select, .champ-pub textarea, .btn-pub {
+    min-height: 48px; font-size: 16px;
+  }
+}
+
+/* Rendu "application" : pas de rebond de défilement en dehors du contenu,
+   pas de sélection de texte accidentelle sur les zones décoratives. */
+html { touch-action: pan-y; }
+body { overscroll-behavior: none; -webkit-user-select: none; user-select: none; }
+.champ-pub input, .champ-pub textarea, .champ-pub select, .recap-code .code, .ligne-lien { -webkit-user-select: text; user-select: text; }

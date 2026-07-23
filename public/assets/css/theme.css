@@ -1,0 +1,112 @@
+/* ============================================================================
+   IKMS (Ikigai Mobility Software) — Jetons de design
+   ----------------------------------------------------------------------------
+   Refonte "Anthracite" (voir Refonte_graphique_IKMS.zip) : bandeau/sidebar en
+   anthracite chaud plutôt que bleu-nuit froid, orange brûlé comme couleur
+   d'action plutôt que l'orange vif "gilet de sécurité" précédent, or comme
+   accent de mise en avant sur fond sombre. Les NOMS de variables restent
+   inchangés (des dizaines de fichiers les consomment déjà) : seules leurs
+   valeurs changent, ce qui propage la nouvelle identité partout sans toucher
+   aux composants -- vérifié qu'aucune de ces couleurs n'est codée en dur
+   ailleurs que dans ce fichier avant de les changer ici.
+   ============================================================================ */
+
+:root {
+  /* Palette de marque — "Anthracite" */
+  --terracotta: #C94C18;
+  --terracotta-deep: #A63D12;
+  --peche: #E5AB3C;
+  --creme: #F7F3F0;
+  --indigo: #11161A;
+  --indigo-clair: #27292C;
+  --gold: #B77913;
+
+  /* Sur fond sombre (pages publiques avec photo/scrim -- expedition-*.css) */
+  --sur-sombre: #FFF6F0;
+  --sur-sombre-doux: #B3B8BE;
+
+  /* Neutres */
+  --ink: #221712;
+  --ink-soft: #5E524B;
+  --papier: #FFFDFC;
+  --surface-secondaire: #F0E7E1;
+  --ligne: #DED4CD;
+
+  /* États */
+  --attente: #5E3900;
+  --attente-fond: #F3DAB2;
+  --valide: #0C4714;
+  --valide-fond: #AEE9AF;
+  --alerte: #DC2626;
+  --alerte-fond: #FEE2E2;
+
+  /* Typographie — Inter en affichage (chargé uniquement sur les pages
+     publiques, jamais sur les outils opérationnels — centrale/hub/livreur
+     restent en pile système pour rester légers sur une connexion 3G
+     instable ; seul le NOM de la police change ici, le chargement reste
+     géré page par page comme avant). */
+  --police-corps: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --police-titre: var(--police-corps);
+  --police-compteur: var(--police-corps);
+
+  /* Echelle */
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 22px;
+  --r-xl: 28px;
+  --ombre: 0 1px 2px rgba(34, 23, 18, 0.05), 0 10px 30px rgba(34, 23, 18, 0.08);
+  --ombre-forte: 0 24px 60px rgba(34, 23, 18, 0.18);
+  --ombre-accent: 0 12px 28px -8px rgba(201, 76, 24, 0.45);
+
+  /* Mouvement — décélération confiante façon Apple, jamais de rebond criard */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-rapide: 0.15s;
+  --dur-base: 0.3s;
+  --dur-lente: 0.6s;
+
+  /* Zone tactile minimale (pouce, en mouvement) */
+  --touch: 52px;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  animation: entree-douce 0.25s ease; /* fondu doux à chaque changement de page */
+  font-family: var(--police-corps);
+  background: var(--creme);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+h1, h2, h3 { font-family: var(--police-titre); margin: 0; letter-spacing: -0.02em; }
+p { margin: 0; }
+button, input, select, textarea { font-family: inherit; }
+a { color: inherit; }
+
+:focus-visible {
+  outline: 3px solid var(--terracotta);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}
+
+/* ============================================================================
+   Retour tactile — feedback immédiat au clic/tap, et transition douce à
+   chaque changement d'écran/onglet/panneau. Sans ça, l'interface donne
+   l'impression de ne pas réagir au toucher (retour terrain).
+   ============================================================================ */
+button:not(:disabled), .btn:not(:disabled) {
+  transition: transform var(--dur-rapide) var(--ease-out-expo), opacity var(--dur-rapide) ease, background-color var(--dur-base) ease;
+}
+button:not(:disabled):active, .btn:not(:disabled):active {
+  transform: scale(0.96);
+}
+
+@keyframes entree-douce {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.entree-contenu { animation: entree-douce 0.22s var(--ease-out-expo); }

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>IKMS — Centrale</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/css/theme.css">
+<link rel="stylesheet" href="./assets/css/centrale.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar sidebar-compacte" id="sidebar">
+    <div class="sidebar-marque">
+      <div class="nom"><span class="marque-complete">IKMS</span><span class="marque-compacte" aria-hidden="true">IK</span></div>
+      <div class="entreprise">Espace centrale</div>
+    </div>
+    <nav class="sidebar-nav" id="sidebar-nav"></nav>
+    <div class="sidebar-pied">
+      <button class="btn-cloche-sidebar" id="btn-notifications" type="button" aria-label="Notifications">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>
+        <span class="libelle-notifications">Notifications</span>
+        <span class="bulle-cloche-sidebar" id="bulle-notifications" hidden>0</span>
+      </button>
+      <div class="nom-utilisateur" id="pied-nom">…</div>
+      <button id="btn-deconnexion" type="button">Se déconnecter</button>
+    </div>
+  </aside>
+
+  <main class="principal">
+    <header class="entete-panneau">
+      <div>
+        <h1 id="titre-panneau">Chargement…</h1>
+        <div class="sous-titre" id="sous-titre-panneau"></div>
+      </div>
+      <div id="actions-panneau"></div>
+    </header>
+    <div class="panneau-contenu" id="contenu-panneau">
+      <div class="chargement-panneau">Chargement…</div>
+    </div>
+  </main>
+
+  <nav class="barre-mobile" id="barre-mobile-liens" aria-label="Navigation"></nav>
+
+  <div class="feuille-menu-mobile" id="feuille-menu-mobile" hidden>
+    <div class="feuille-menu-mobile-voile" id="voile-menu-mobile"></div>
+    <div class="feuille-menu-mobile-panneau" role="dialog" aria-modal="true">
+      <div class="feuille-secteurs-poignee"></div>
+      <div class="feuille-menu-mobile-titre">Menu</div>
+      <div class="feuille-menu-mobile-liste" id="feuille-menu-mobile-liste"></div>
+    </div>
+  </div>
+</div>
+
+<script src="./assets/js/config.public.js"></script>
+<script type="module" src="./assets/js/app.js"></script>
+</body>
+</html>

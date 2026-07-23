@@ -1,0 +1,91 @@
+/* ============================================================================
+   Formulaire d'envoi -- même thème que les pages internes (centrale) :
+   fond clair, cartes blanches à bordure fine, texte sombre. Plus de photos
+   d'arrière-plan par étape -- juste le contenu, sur le même thème "Anthracite"
+   que le reste d'IKMS.
+   ============================================================================ */
+
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--creme); height: 100%; }
+body {
+  font-family: var(--police-corps); color: var(--ink); overscroll-behavior-y: contain;
+  /* Page fixe façon application : le corps ne défile jamais, seule l'étape
+     visible défile en interne (voir .etape ci-dessous). Évite la barre
+     d'adresse mobile qui apparaît/disparaît au scroll, le rebond de page,
+     et simplifie le positionnement des popups/suggestions qui n'ont plus à
+     tenir compte d'un défilement de document en plus du leur. */
+  position: fixed; inset: 0; overflow: hidden;
+  display: flex; flex-direction: column;
+}
+
+#form-expedition { position: relative; z-index: 2; flex: 1; min-height: 0; }
+
+.etape {
+  height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  display: flex; flex-direction: column; justify-content: flex-start;
+  padding: 28px min(6vw, 70px) 34px;
+  max-width: 720px; margin: 0 auto;
+}
+
+@media (max-width: 680px) {
+  .app-expedition #form-expedition {
+    padding-bottom: calc(48px + env(safe-area-inset-bottom, 0px));
+  }
+  .app-expedition .etape {
+    padding-top: 22px;
+    padding-bottom: 28px;
+  }
+}
+.etape[hidden] { display: none; }
+.etape::before {
+  content: "Étape " attr(data-etape) " sur 4";
+  width: fit-content;
+  margin-bottom: 14px;
+  padding: 6px 9px;
+  border-radius: 999px;
+  color: var(--terracotta);
+  background: #F6E3DA;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.actions-etape { display: flex; gap: 10px; margin-top: 10px; }
+.actions-etape .btn-pub-discret { width: auto; flex: 0 0 auto; padding: 0 18px; margin-bottom: 0; }
+.actions-etape .btn-pub-primaire { flex: 1; margin-top: 0; }
+
+.chapitre-texte { max-width: 52ch; margin-bottom: 22px; }
+.chapitre-texte h1, .chapitre-texte h2 {
+  font-family: var(--police-titre); font-weight: 700; letter-spacing: -0.02em; margin: 0; color: var(--ink);
+}
+.chapitre-texte h1 { font-size: clamp(24px, 4vw, 34px); line-height: 1.15; }
+.chapitre-texte h2 { font-size: clamp(21px, 3.2vw, 27px); line-height: 1.18; }
+.chapitre-texte p { margin: 10px 0 0; font-size: 14.5px; line-height: 1.5; color: var(--ink-soft); }
+
+.chapitre-form {
+  background: var(--papier); border: 1px solid var(--ligne); border-radius: var(--r-lg, 18px);
+  padding: 24px 22px; box-shadow: 0 1px 2px rgba(34,23,18,0.06), 0 18px 50px rgba(34,23,18,0.10);
+}
+
+.pied-publique {
+  position: relative; z-index: 2; text-align: center; padding: 24px 20px calc(24px + env(safe-area-inset-bottom, 0px));
+  color: var(--ink-soft); font-size: 12px;
+}
+.marque-pied { font-family: var(--police-titre); font-weight: 700; font-size: 14px; color: var(--ink); margin-bottom: 4px; }
+.marque-pied span { display: block; font-family: var(--police-corps); font-weight: 500; font-size: 11px; color: var(--terracotta); margin-top: 2px; }
+
+/* --- Carrousel d'accroches (haut de l'étape 1) : défilement horizontal
+   tactile avec accroche ("scroll-snap"), une carte par créneau personnalisé
+   -- absent du DOM tant qu'aucun tenant n'a rien renseigné (voir
+   expedition-externe.js/appliquerAccroches()). --- */
+.carrousel-accroches {
+  display: flex; gap: 12px; overflow-x: auto; -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory; margin: 0 0 18px; padding-bottom: 2px;
+}
+.carte-accroche-pub {
+  flex: 0 0 auto; scroll-snap-align: start; width: min(72vw, 260px); aspect-ratio: 4 / 3;
+  border-radius: 16px; overflow: hidden; position: relative; background: var(--creme) center / cover no-repeat;
+  border: 1px solid var(--ligne); display: flex; align-items: flex-end;
+}
+.carte-accroche-pub-voile { position: absolute; inset: 0; background: linear-gradient(0deg, rgba(18,23,27,0.72) 0%, rgba(18,23,27,0.1) 60%); }
+.carte-accroche-pub p { position: relative; z-index: 1; margin: 0; padding: 14px; color: #fff; font-family: var(--police-titre); font-weight: 700; font-size: 15px; line-height: 1.3; }

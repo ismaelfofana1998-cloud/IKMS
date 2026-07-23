@@ -1,0 +1,233 @@
+/* ============================================================================
+   Pages publiques — composants
+   ============================================================================ */
+
+.page-publique { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
+
+.entete-section-form { max-width: 480px; margin: 34px auto 0; padding: 0 20px; text-align: center; }
+.entete-section-form h2 { font-family: var(--police-titre); font-size: 24px; letter-spacing: -0.01em; }
+.entete-section-form p { margin-top: 8px; font-size: 14px; color: var(--ink-soft); }
+
+/* ============================================================================
+   Hero cinétique — la pièce signature : un bandeau bleu-nuit avec un
+   défilement continu de véhicules (moto/voiture/scooter/vélo) sur une
+   piste en tirets, façon trajet de livraison qui ne s'arrête jamais.
+   ============================================================================ */
+.hero-kinetique {
+  background: linear-gradient(165deg, var(--indigo) 0%, var(--indigo-clair) 100%);
+  color: var(--papier);
+  padding: calc(28px + env(safe-area-inset-top, 0px)) 20px 0;
+  overflow: hidden;
+  position: relative;
+}
+.hero-lueur { position: absolute; border-radius: 50%; filter: blur(2px); pointer-events: none; }
+.hero-lueur-une {
+  top: -140px; left: -120px; width: 340px; height: 340px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--peche) 30%, transparent), transparent 68%);
+}
+.hero-lueur-deux {
+  right: -80px; bottom: -160px; width: 300px; height: 300px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--terracotta) 32%, transparent), transparent 68%);
+}
+.hero-corps { max-width: 480px; margin: 0 auto; padding-bottom: 26px; position: relative; z-index: 2; }
+.hero-marque {
+  font-family: var(--police-titre); font-weight: 700; font-size: 15px; letter-spacing: 0.02em;
+  display: flex; align-items: baseline; gap: 8px; margin-bottom: 22px;
+}
+.hero-marque span { font-family: var(--police-corps); font-weight: 500; font-size: 11px; color: var(--peche); letter-spacing: 0.03em; }
+.hero-sur-titre {
+  margin: 0 0 10px; display: inline-flex; align-items: center; gap: 6px;
+  color: var(--peche); font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+}
+.hero-titre {
+  font-size: clamp(30px, 7vw, 40px); line-height: 1.0; font-weight: 700; letter-spacing: -0.04em; margin: 0;
+  background: linear-gradient(100deg, #ffffff 40%, var(--peche) 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.hero-sous { display: block; margin-top: 14px; font-size: 14.5px; line-height: 1.5; color: var(--sur-sombre-doux); max-width: 34ch; }
+.hero-preuves { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.hero-preuves span { display: inline-flex; align-items: center; gap: 5px; color: rgba(255,255,255,0.75); font-size: 11px; font-weight: 700; }
+
+.convoi { position: relative; z-index: 1; padding-bottom: 18px; overflow: hidden; }
+.convoi-piste {
+  display: flex; width: max-content;
+  animation: defiler-convoi 18s linear infinite;
+}
+.convoi-rangee {
+  display: flex; align-items: center; gap: 22px; padding-right: 22px; white-space: nowrap; flex-shrink: 0;
+  font-size: 22px; opacity: 0.92;
+}
+.convoi-tiret { width: 22px; height: 2px; background: rgba(230, 172, 61, 0.35); border-radius: 2px; flex-shrink: 0; }
+
+@keyframes defiler-convoi {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .convoi-piste { animation: none; }
+}
+
+.entete-publique {
+  background: var(--ink); color: var(--papier); padding: 18px 20px calc(16px + env(safe-area-inset-top, 0px));
+  text-align: center;
+}
+.entete-publique .marque { font-family: var(--police-titre); font-weight: 700; font-size: 17px; }
+.entete-publique .marque span { display: block; font-family: var(--police-corps); font-weight: 500; font-size: 11px; color: var(--peche); margin-top: 3px; letter-spacing: 0.03em; }
+.entete-publique .sous-marque { font-size: 12.5px; color: var(--peche); margin-top: 2px; }
+
+.contenu-publique {
+  flex: 1; padding: 24px 18px 40px; max-width: 480px; margin: -18px auto 0; width: 100%;
+  background: var(--creme); border-radius: var(--r-xl) var(--r-xl) 0 0; position: relative; z-index: 3;
+}
+
+.champ-pub { margin-bottom: 14px; }
+.champ-pub label { display: block; font-size: 12.5px; font-weight: 700; color: var(--ink-soft); margin-bottom: 6px; }
+.champ-pub input, .champ-pub select, .champ-pub textarea {
+  width: 100%; min-height: 48px; border: 2px solid var(--ligne); border-radius: var(--r-md);
+  padding: 0 14px; font-size: 15px; background: var(--papier); color: var(--ink);
+}
+.champ-pub textarea { padding: 12px 14px; min-height: 70px; }
+.champ-pub input:focus, .champ-pub select:focus, .champ-pub textarea:focus {
+  border-color: var(--terracotta); outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--terracotta) 16%, transparent);
+}
+
+.carte-colis-pub {
+  background: var(--papier); border: 1px solid var(--ligne); border-radius: var(--r-md);
+  padding: 14px; margin-bottom: 12px; position: relative;
+}
+.carte-colis-pub .retirer-colis {
+  position: absolute; top: 10px; right: 10px; background: none; border: none; color: var(--ink-soft);
+  font-size: 12px; font-weight: 700;
+}
+
+.btn-pub {
+  min-height: 52px; width: 100%; border: none; border-radius: var(--r-md);
+  font-size: 15.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-pub-primaire {
+  background: linear-gradient(135deg, var(--terracotta) 0%, var(--terracotta-deep) 100%);
+  color: var(--papier); box-shadow: var(--ombre-accent);
+}
+.btn-pub-secondaire { background: var(--peche); color: var(--ink); }
+.btn-pub-discret { background: transparent; border: 1.5px solid var(--ligne); color: var(--ink-soft); }
+.btn-pub:disabled { opacity: 0.55; box-shadow: none; }
+
+.champ-adresse-pub { position: relative; }
+.ligne-adresse-geoloc { display: flex; gap: 8px; }
+.ligne-adresse-geoloc input { flex: 1; }
+.btn-geoloc {
+  flex-shrink: 0; min-height: 48px; padding: 0 12px; border-radius: var(--r-md);
+  border: 2px solid var(--ligne); background: var(--peche); color: var(--ink);
+  font-size: 12.5px; font-weight: 700; white-space: nowrap;
+}
+.btn-geoloc:disabled { opacity: 0.65; }
+
+.liste-suggestions {
+  position: absolute; left: 0; right: 0; top: 100%; z-index: 20; margin-top: 4px;
+  background: var(--papier); border: 1.5px solid var(--ligne); border-radius: var(--r-sm);
+  box-shadow: var(--ombre-forte); max-height: 220px; overflow-y: auto;
+}
+.suggestion-adresse {
+  display: block; width: 100%; text-align: left; padding: 10px 12px; border: none;
+  background: none; font-size: 13.5px; color: var(--ink); border-bottom: 1px solid var(--ligne);
+}
+.suggestion-adresse:last-child { border-bottom: none; }
+.suggestion-adresse:hover, .suggestion-adresse:focus-visible { background: var(--creme); }
+
+.prix-estime {
+  margin-top: 6px; font-size: 13px; font-weight: 700; color: var(--valide);
+}
+
+.message-erreur-pub {
+  background: var(--alerte-fond); color: var(--alerte); font-size: 13.5px; font-weight: 600;
+  padding: 10px 12px; border-radius: var(--r-sm); margin-bottom: 14px; display: none;
+}
+.message-erreur-pub.visible { display: block; }
+
+.recap-code {
+  background: linear-gradient(165deg, var(--indigo) 0%, var(--indigo-clair) 100%); color: var(--papier);
+  border-radius: var(--r-lg); padding: 20px; text-align: center; margin-bottom: 14px;
+}
+.recap-code .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--peche); margin-bottom: 8px; }
+.recap-code .code { font-family: var(--police-compteur); font-size: 32px; font-weight: 700; letter-spacing: 0.15em; }
+
+.bloc-recap {
+  background: var(--papier); border: 1px solid var(--ligne); border-radius: var(--r-md); padding: 16px; margin-bottom: 12px;
+}
+.bloc-recap h3 { font-size: 14px; margin-bottom: 8px; }
+.ligne-lien {
+  display: flex; justify-content: space-between; align-items: center; padding: 10px 0;
+  border-top: 1px solid var(--ligne); font-size: 13.5px;
+}
+.ligne-lien:first-of-type { border-top: none; }
+
+.carte-suivi {
+  background: var(--papier); border: 1px solid var(--ligne); border-radius: var(--r-lg);
+  padding: 22px; text-align: center; margin-top: 10px;
+}
+.carte-suivi .icone-position { color: var(--terracotta); margin-bottom: 12px; }
+.carte-suivi h2 { font-size: 17px; margin-bottom: 6px; }
+.carte-suivi p { font-size: 13.5px; color: var(--ink-soft); margin-bottom: 18px; line-height: 1.5; }
+
+.carte-recherche-suivi {
+  margin-top: 4px;
+  padding: clamp(24px, 6vw, 34px);
+  text-align: left;
+  box-shadow: 0 18px 50px rgba(34, 23, 18, 0.08);
+}
+.carte-recherche-suivi .icone-position {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  color: var(--terracotta);
+  background: color-mix(in srgb, var(--terracotta) 10%, white);
+}
+.carte-recherche-suivi .sur-titre-suivi {
+  margin: 22px 0 7px;
+  color: var(--terracotta);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.carte-recherche-suivi h1 {
+  margin: 0 0 8px;
+  font-size: clamp(25px, 7vw, 34px);
+  letter-spacing: -0.04em;
+}
+.carte-recherche-suivi form { display: grid; gap: 10px; margin-top: 22px; }
+.carte-recherche-suivi label { font-size: 12px; font-weight: 750; color: var(--ink-soft); }
+.carte-recherche-suivi input {
+  width: 100%;
+  min-height: 52px;
+  padding: 0 15px;
+  border: 1.5px solid var(--ligne);
+  border-radius: var(--r-md);
+  color: var(--ink);
+  background: var(--papier);
+  font: inherit;
+}
+.carte-recherche-suivi input:focus {
+  border-color: var(--terracotta);
+  outline: 3px solid color-mix(in srgb, var(--terracotta) 14%, transparent);
+}
+.carte-recherche-suivi .aide-suivi {
+  margin-top: 14px;
+  color: var(--ink-soft);
+  font-size: 11.5px;
+  text-align: center;
+}
+
+.etat-position {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700;
+  padding: 8px 14px; border-radius: 999px; margin-top: 14px;
+}
+.etat-position.attente { background: var(--attente-fond, #F3DAB2); color: var(--attente, #5E3900); }
+.etat-position.ok { background: var(--valide-fond, #AEE9AF); color: var(--valide, #0C4714); }
+
+.pied-publique { text-align: center; padding: 16px; font-size: 12px; color: var(--ink-soft); }
+
+.chargement-pub { text-align: center; padding: 60px 20px; color: var(--ink-soft); }

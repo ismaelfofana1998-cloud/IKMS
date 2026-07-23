@@ -1,0 +1,39 @@
+{
+  "id": "ikms-expedition-suivi",
+  "name": "IKMS — Expédition & suivi",
+  "short_name": "IKMS Colis",
+  "description": "Créer une expédition et suivre un colis depuis une seule application.",
+  "lang": "fr",
+  "start_url": "./expediteur.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F7F3F0",
+  "theme_color": "#11161A",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "./assets/icons/app-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./assets/icons/app-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Envoyer un colis",
+      "short_name": "Expédier",
+      "url": "./expediteur.html"
+    },
+    {
+      "name": "Suivre un colis",
+      "short_name": "Suivi",
+      "url": "./suivi.html"
+    }
+  ]
+}

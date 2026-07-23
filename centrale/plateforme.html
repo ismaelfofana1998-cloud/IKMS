@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plateforme — IKMS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/css/theme.css">
+<link rel="stylesheet" href="./assets/css/centrale.css">
+</head>
+<body>
+<div class="app-plateforme">
+
+  <header class="topbar-plateforme">
+    <div class="identite">
+      <span class="marque">IKMS · Plateforme</span>
+      <span class="nom" id="topbar-nom">Chargement…</span>
+    </div>
+    <button class="btn-deconnexion" id="btn-deconnexion" type="button">Quitter</button>
+  </header>
+
+  <p class="avertissement-plateforme">
+    Cet espace est réservé à l'éditeur du logiciel (toi ou ton équipe) pour gérer les entreprises clientes
+    du SaaS — il est distinct de l'espace centrale de chaque entreprise cliente, y compris IKIGAI Livraison
+    elle-même, qui n'est qu'une cliente parmi d'autres ici.
+  </p>
+
+  <main class="contenu-plateforme">
+    <div class="onglets-panneau" id="onglets-plateforme">
+      <button class="onglet-panneau" data-onglet="ENTREPRISES" aria-current="true">Entreprises clientes</button>
+      <button class="onglet-panneau" data-onglet="PERSONNALISER" aria-current="false">Personnaliser</button>
+    </div>
+    <header class="entete-panneau">
+      <div>
+        <h1 id="titre-panneau">Entreprises clientes</h1>
+        <div class="sous-titre" id="sous-titre-panneau">Chargement…</div>
+      </div>
+      <div id="actions-panneau"></div>
+    </header>
+    <div class="panneau-contenu" id="contenu-panneau">
+      <div class="chargement-panneau">Chargement…</div>
+    </div>
+  </main>
+
+</div>
+
+<script src="./assets/js/config.public.js"></script>
+<script type="module" src="./assets/js/plateforme.js"></script>
+</body>
+</html>

@@ -1,0 +1,143 @@
+.app-bar-public {
+  position: relative;
+  z-index: 80;
+  flex: 0 0 auto;
+  min-height: calc(64px + env(safe-area-inset-top, 0px));
+  padding: env(safe-area-inset-top, 0px) max(18px, env(safe-area-inset-right, 0px)) 0 max(18px, env(safe-area-inset-left, 0px));
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  color: #fff;
+  background: var(--indigo);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.app-bar-public .app-marque {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.app-marque-signe {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  color: #fff;
+  background: var(--terracotta);
+  box-shadow: 0 8px 22px rgba(201, 76, 24, 0.28);
+}
+
+.app-marque-texte small {
+  display: block;
+  margin-top: 1px;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.app-nav-public {
+  margin-left: auto;
+  display: flex;
+  gap: 4px;
+}
+
+.app-nav-public a,
+.app-install-public {
+  min-height: 38px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: rgba(255, 255, 255, 0.72);
+  background: transparent;
+  text-decoration: none;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.app-nav-public a:hover,
+.app-nav-public a[aria-current="page"],
+.app-install-public:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.app-install-public {
+  margin-left: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.app-nav-mobile-public {
+  display: none;
+}
+
+.app-native-public { background: var(--creme); }
+
+.app-native-public .pied-publique {
+  display: none;
+}
+
+@media (max-width: 680px) {
+  .app-bar-public {
+    min-height: calc(58px + env(safe-area-inset-top, 0px));
+  }
+
+  .app-bar-public .app-nav-public,
+  .app-bar-public .app-install-public {
+    display: none !important;
+  }
+
+  .app-nav-mobile-public {
+    position: fixed;
+    z-index: 90;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    min-height: calc(48px + env(safe-area-inset-bottom, 0px));
+    padding: 2px max(8px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(8px, env(safe-area-inset-left, 0px));
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    background: var(--surface-secondaire);
+    border-top: 1px solid var(--ligne);
+    box-shadow: 0 -6px 18px rgba(34, 23, 18, 0.09);
+  }
+
+  .app-nav-mobile-public a {
+    min-height: 42px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border-radius: 12px;
+    color: var(--ink-soft);
+    text-decoration: none;
+    font-size: 10px;
+    font-weight: 750;
+  }
+
+  .app-nav-mobile-public a svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .app-nav-mobile-public a[aria-current="page"] {
+    color: var(--terracotta);
+    background: #F6DED3;
+  }
+
+  .app-native-public .contenu-publique {
+    padding-bottom: calc(58px + env(safe-area-inset-bottom, 0px));
+  }
+}

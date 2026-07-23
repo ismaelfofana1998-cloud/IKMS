@@ -1,0 +1,95 @@
+/* ============================================================================
+   IKMS (Ikigai Mobility Software) — Espace Livreur — Jetons de design
+   Refonte "Anthracite" (voir Refonte_graphique_IKMS.zip) — mêmes valeurs que
+   les autres espaces, orange brûlé et anthracite chaud plutôt que l'orange
+   vif/bleu-nuit froid précédents. Police Inter chargée (preset design system
+   du 19/07 : couvre explicitement desktop ET mobile missions livreur) --
+   revenu sur le choix "police système" du premier passage.
+   ============================================================================ */
+
+:root {
+  /* Palette de marque — "Anthracite" (mêmes valeurs que les autres espaces) */
+  --terracotta: #C94C18;
+  --terracotta-deep: #A63D12;
+  --peche: #E5AB3C;
+  --creme: #F7F3F0;
+  --indigo: #11161A;
+  --indigo-clair: #27292C;
+  --gold: #B77913;
+
+  /* Neutres */
+  --ink: #221712;
+  --ink-soft: #5E524B;
+  --papier: #FFFDFC;
+  --surface-secondaire: #F0E7E1;
+  --ligne: #DED4CD;
+
+  /* États */
+  --attente: #5E3900;
+  --attente-fond: #F3DAB2;
+  --valide: #0C4714;
+  --valide-fond: #AEE9AF;
+  --alerte: #DC2626;
+  --alerte-fond: #FEE2E2;
+
+  /* Typographie */
+  --police-corps: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --police-titre: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --police-compteur: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --police-donnee: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  /* Echelle */
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 22px;
+  --ombre: 0 1px 2px rgba(34, 23, 18, 0.05), 0 10px 30px rgba(34, 23, 18, 0.08);
+  --ombre-forte: 0 24px 60px rgba(34, 23, 18, 0.18);
+  --ombre-accent: 0 12px 28px -8px rgba(201, 76, 24, 0.45);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Zone tactile minimale (pouce, en mouvement) */
+  --touch: 52px;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  animation: entree-douce 0.25s ease; /* fondu doux à chaque changement de page */
+  font-family: var(--police-corps);
+  background: var(--creme);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+h1, h2, h3 { font-family: var(--police-titre); margin: 0; letter-spacing: -0.01em; }
+p { margin: 0; }
+button, input, select, textarea { font-family: inherit; }
+a { color: inherit; }
+
+:focus-visible {
+  outline: 3px solid var(--terracotta);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}
+
+/* ============================================================================
+   Retour tactile — feedback immédiat au clic/tap, et transition douce à
+   chaque changement d'écran/onglet/panneau. Sans ça, l'interface donne
+   l'impression de ne pas réagir au toucher (retour terrain).
+   ============================================================================ */
+button:not(:disabled), .btn:not(:disabled) {
+  transition: transform 0.08s ease, opacity 0.08s ease, background-color 0.15s ease;
+}
+button:not(:disabled):active, .btn:not(:disabled):active {
+  transform: scale(0.96);
+}
+
+@keyframes entree-douce {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.entree-contenu { animation: entree-douce 0.22s ease; }

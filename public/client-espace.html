@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mon espace — IKMS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/css/theme.css">
+<link rel="stylesheet" href="./assets/css/public.css">
+<style>
+  .barre-client {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    background: var(--papier); border: 1px solid var(--ligne); border-radius: var(--r-md);
+    padding: 14px 16px; margin-bottom: 16px;
+  }
+  .barre-client .solde { font-family: var(--police-compteur, inherit); font-weight: 700; font-size: 18px; }
+  .barre-client .solde.negatif { color: var(--alerte); }
+  .onglets-client { display: flex; gap: 8px; margin-bottom: 16px; }
+  .onglet-client {
+    flex: 1; padding: 10px; border-radius: var(--r-md); border: 1.5px solid var(--ligne);
+    background: var(--papier); font-weight: 700; font-size: 13.5px; color: var(--ink-soft);
+    transition: transform 0.08s ease, background-color 0.15s ease;
+  }
+  .onglet-client:active { transform: scale(0.97); }
+  .onglet-client[aria-current="true"] { background: var(--terracotta); color: var(--papier); border-color: var(--terracotta); }
+  .ligne-historique {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    padding: 12px 0; border-bottom: 1px solid var(--ligne);
+  }
+  .ligne-historique:last-child { border-bottom: none; }
+</style>
+</head>
+<body>
+<div class="page-publique">
+  <header class="entete-publique">
+    <div class="marque" id="marque-tenant">Chargement…</div>
+    <div class="sous-marque" id="nom-client">Mon espace</div>
+  </header>
+
+  <main class="contenu-publique" id="contenu">
+    <div class="chargement-pub">Chargement…</div>
+  </main>
+
+  <footer class="pied-publique">
+    <button id="btn-deconnexion" style="background:none;border:none;color:var(--ink-soft);font-size:13px;text-decoration:underline;cursor:pointer;">Se déconnecter</button>
+  </footer>
+</div>
+<script src="./assets/js/config.public.js"></script>
+<script type="module" src="./assets/js/client-espace.js"></script>
+</body>
+</html>

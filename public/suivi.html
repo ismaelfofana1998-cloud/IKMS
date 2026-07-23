@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#11161A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Suivi — IKMS</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./assets/icons/app-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/css/theme.css">
+<link rel="stylesheet" href="./assets/css/app-shell.css">
+<link rel="stylesheet" href="./assets/css/public.css">
+</head>
+<body class="app-native-public">
+<header class="app-bar-public">
+  <a class="app-marque" href="./expediteur.html" aria-label="IKMS, accueil de l'application colis">
+    <span class="app-marque-signe" aria-hidden="true">IK</span>
+    <span class="app-marque-texte">IKMS<small>Expédition &amp; suivi</small></span>
+  </a>
+  <nav class="app-nav-public" aria-label="Navigation principale">
+    <a href="./expediteur.html">Envoyer</a>
+    <a href="./suivi.html" aria-current="page">Suivre</a>
+  </nav>
+  <button class="app-install-public" type="button" data-installer-app hidden>Installer l'app</button>
+</header>
+<div class="page-publique">
+  <header class="entete-publique">
+    <div class="marque" id="marque-tenant">Chargement…</div>
+    <div class="sous-marque">Suivi de colis</div>
+  </header>
+  <main class="contenu-publique" id="contenu">
+    <div class="chargement-pub">Chargement…</div>
+  </main>
+  <footer class="pied-publique">Propulsé par IKMS</footer>
+</div>
+<nav class="app-nav-mobile-public" aria-label="Navigation de l'application">
+  <a href="./expediteur.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 8V21H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>
+    <span>Envoyer</span>
+  </a>
+  <a href="./suivi.html" aria-current="page">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+    <span>Suivre</span>
+  </a>
+</nav>
+<script src="./assets/js/config.public.js"></script>
+<script type="module" src="./assets/js/pwa.js"></script>
+<script type="module" src="./assets/js/suivi.js"></script>
+</body>
+</html>

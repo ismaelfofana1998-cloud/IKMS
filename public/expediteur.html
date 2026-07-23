@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#11161A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Envoyer un colis — IKMS</title>
+<!--
+  Sur iOS, un manifest statique avec start_url="./expediteur.html" peut
+  remplacer l'URL exacte ajoutée à l'écran d'accueil et supprimer
+  ?entreprise=CODE. Sans manifest, Safari utilise l'URL courante complète
+  pour le raccourci et conserve donc le tenant. Les métadonnées Apple et
+  l'icône ci-dessous suffisent au mode application iPhone.
+
+  Les autres navigateurs reçoivent toujours le manifest PWA normal.
+-->
+<script>
+  (() => {
+    const estIOS = /iPad|iPhone|iPod/i.test(navigator.userAgent)
+      || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    if (estIOS) return;
+    const manifest = document.createElement("link");
+    manifest.rel = "manifest";
+    manifest.href = "./manifest.webmanifest";
+    document.head.appendChild(manifest);
+  })();
+</script>
+<link rel="apple-touch-icon" href="./assets/icons/app-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/css/theme.css">
+<link rel="stylesheet" href="./assets/css/app-shell.css">
+<link rel="stylesheet" href="./assets/css/expedition-externe.css">
+<link rel="stylesheet" href="./assets/css/expedition-form.css">
+<link rel="stylesheet" href="./assets/css/expedition-responsive.css">
+</head>
+<body class="app-native-public app-expedition">
+
+<header class="app-bar-public">
+  <a class="app-marque" href="./expediteur.html" aria-label="IKMS, accueil de l'application colis">
+    <span class="app-marque-signe" aria-hidden="true">IK</span>
+    <span class="app-marque-texte">IKMS<small>Expédition &amp; suivi</small></span>
+  </a>
+  <nav class="app-nav-public" aria-label="Navigation principale">
+    <a href="./expediteur.html" aria-current="page">Envoyer</a>
+    <a href="./suivi.html">Suivre</a>
+  </nav>
+  <button class="app-install-public" type="button" data-installer-app hidden>Installer l'app</button>
+</header>
+
+<form id="form-expedition" novalidate>
+  <div class="message-erreur-pub" id="erreur-form" aria-live="assertive">
+    <span id="erreur-form-texte"></span>
+    <button type="button" class="fermer-erreur" id="btn-fermer-erreur" aria-label="Fermer">×</button>
+  </div>
+
+  <!-- Étape 1 : zones + prix, avant toute autre information. Combien ça
+       coûte, tout de suite — rien à remplir sur soi-même avant de savoir. -->
+  <section class="etape" data-etape="1">
+    <div class="carrousel-accroches" id="carrousel-accroches" hidden></div>
+    <div class="chapitre-texte">
+      <h1>Combien ça coûte ?</h1>
+      <p>Choisis d'où part le colis et où il va — le prix s'affiche immédiatement, avant de renseigner quoi que ce soit d'autre.</p>
+    </div>
+    <div class="chapitre-form">
+      <div class="champ-pub">
+        <label for="zone-depart">Zone de départ</label>
+        <div class="selecteur-zone" id="selecteur-zone-depart"></div>
+      </div>
+
+      <div id="liste-trajets">
+        <div class="carte-trajet" data-trajet="0">
+          <div class="champ-pub">
+            <label for="zone-arrivee-0">Zone d'arrivée</label>
+            <div class="selecteur-zone selecteur-zone-arrivee" data-trajet-select="0"></div>
+          </div>
+          <div class="prix-estime" data-prix-trajet="0" hidden></div>
+        </div>
+      </div>
+      <button type="button" class="btn-pub btn-pub-discret" id="btn-ajouter-trajet">+ Colis supplémentaire (autre destination)</button>
+
+      <div class="prix-total" id="prix-total" hidden></div>
+      <button type="button" class="btn-pub btn-pub-primaire" id="btn-etape1-continuer" disabled>Continuer</button>
+    </div>
+  </section>
+
+  <!-- Étape 2 : expéditeur (pré-rempli si un compte existe). -->
+  <section class="etape" data-etape="2" hidden>
+    <div class="chapitre-texte">
+      <h2 id="titre-etape-expediteur">C'est toi qui envoies.</h2>
+      <p id="sous-titre-etape-expediteur">Quelques informations pour que le livreur puisse te trouver au ramassage.</p>
+    </div>
+    <div class="chapitre-form">
+      <div id="bandeau-compte-connecte" hidden></div>
+      <div class="champ-pub"><label for="exp-nom">Votre nom</label><input id="exp-nom" required placeholder="Nom complet"></div>
+      <div class="champ-pub"><label for="exp-tel">Votre téléphone</label><input id="exp-tel" type="tel" inputmode="numeric" required placeholder="07 00 00 00 00" maxlength="14"></div>
+      <div class="champ-pub champ-adresse-pub">
+        <label for="exp-adresse">Adresse de ramassage <span class="mention-optionnelle">(utile, pas obligatoire)</span></label>
+        <div class="champ-adresse-icone">
+          <input id="exp-adresse" type="text" placeholder="Quartier, repère, indications utiles au livreur" autocomplete="off">
+          <button type="button" class="btn-geoloc-icone" id="btn-ma-position" title="Utiliser ma position" aria-label="Utiliser ma position">📍</button>
+        </div>
+        <div class="liste-suggestions" id="suggestions-exp" hidden></div>
+        <div class="avertissement-zone" id="avertissement-zone-exp" hidden></div>
+      </div>
+      <div id="proposition-compte"></div>
+      <div class="actions-etape">
+        <button type="button" class="btn-pub btn-pub-discret" data-retour="1">‹ Retour</button>
+        <button type="button" class="btn-pub btn-pub-primaire" id="btn-etape2-continuer">Continuer</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Étape 3 : un bloc destinataire par trajet choisi à l'étape 1 (zone déjà connue, plus besoin de la redemander). -->
+  <section class="etape" data-etape="3" hidden>
+    <div class="chapitre-form">
+      <h2 class="rubrique-titre">À qui livrez-vous ?</h2>
+      <div id="liste-destinataires"></div>
+      <div class="actions-etape">
+        <button type="button" class="btn-pub btn-pub-discret" data-retour="2">‹ Retour</button>
+        <button type="button" class="btn-pub btn-pub-primaire" id="btn-etape3-continuer">Continuer</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Étape 4 : paiement + envoi. -->
+  <section class="etape" data-etape="4" hidden>
+    <div class="chapitre-form">
+      <h2 class="rubrique-titre">Qui règle la livraison ?</h2>
+      <div class="champ-pub">
+        <select id="mode-paiement">
+          <option value="A_LA_LIVRAISON">Le destinataire, à la livraison</option>
+          <option value="PAR_EXPEDITEUR">Moi, au livreur lors du ramassage</option>
+        </select>
+      </div>
+      <div class="prix-total" id="prix-total-final"></div>
+      <div class="actions-etape">
+        <button type="button" class="btn-pub btn-pub-discret" data-retour="3">‹ Retour</button>
+        <button type="submit" class="btn-pub btn-pub-primaire" id="btn-envoyer">Envoyer le colis</button>
+      </div>
+    </div>
+    <div id="confirmation-contenu" aria-live="polite"></div>
+  </section>
+</form>
+
+<nav class="app-nav-mobile-public" aria-label="Navigation de l'application">
+  <a href="./expediteur.html" aria-current="page">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 8V21H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>
+    <span>Envoyer</span>
+  </a>
+  <a href="./suivi.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+    <span>Suivre</span>
+  </a>
+</nav>
+
+<footer class="pied-publique">
+  <div class="marque-pied">IKMS <span>Ikigai Mobility Software</span></div>
+  <div>Propulsé par IKMS</div>
+</footer>
+
+<script src="./assets/js/config.public.js"></script>
+<script type="module" src="./assets/js/pwa.js"></script>
+<script type="module" src="./assets/js/expedition-externe.js"></script>
+</body>
+</html>
