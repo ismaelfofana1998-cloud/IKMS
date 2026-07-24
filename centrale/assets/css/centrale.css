@@ -547,6 +547,108 @@ table.donnees tr:hover td { background: #FAF6F3; }
 .apercu-entete-form h2 { font-size: 18px; letter-spacing: -0.01em; margin: 0; color: var(--ink); }
 .apercu-entete-form p { margin-top: 6px; font-size: 12.5px; color: var(--ink-soft); }
 
+.filtres-operations {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(110px, 1fr));
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.filtre-operation {
+  min-height: 54px;
+  padding: 9px 12px;
+  border: 1px solid var(--ligne);
+  border-radius: var(--r-md);
+  background: var(--papier);
+  color: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  text-align: left;
+  font-weight: 700;
+}
+.filtre-operation strong {
+  min-width: 25px;
+  height: 25px;
+  padding: 0 7px;
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
+  background: var(--creme);
+  color: var(--ink);
+  font-size: 12px;
+}
+.filtre-operation[aria-current="true"] {
+  background: var(--header);
+  border-color: var(--header);
+  color: var(--papier);
+}
+.filtre-operation[aria-current="true"] strong {
+  background: var(--peche);
+  color: var(--header);
+}
+.flux-operations { display: grid; gap: 14px; }
+.etape-operation { margin: 0; }
+.etape-operation .tableau-titre small {
+  display: inline-grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 7px;
+  margin-left: 6px;
+  border-radius: 999px;
+  background: var(--creme);
+  color: var(--ink-soft);
+}
+.tableau-defilant { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.tableau-defilant table.donnees { min-width: 760px; }
+.donnees td small,
+.historique-commandes td small {
+  display: block;
+  margin-top: 3px;
+  color: var(--ink-soft);
+  font-size: 11.5px;
+  font-weight: 500;
+}
+.barre-selection-operation {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--ligne);
+  color: var(--ink-soft);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.filtres-historique {
+  display: grid;
+  grid-template-columns: minmax(260px, 2fr) minmax(180px, 1fr) minmax(150px, .7fr) minmax(150px, .7fr);
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 14px;
+  padding: 14px;
+  border: 1px solid var(--ligne);
+  border-radius: var(--r-md);
+  background: var(--papier);
+}
+.filtres-historique .champ { margin: 0; }
+.titre-historique { display: flex; justify-content: space-between; align-items: center; }
+.titre-historique small { color: var(--ink-soft); font-weight: 600; }
+.historique-commandes { min-width: 1280px !important; }
+.pagination-historique {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px;
+  border-top: 1px solid var(--ligne);
+  color: var(--ink-soft);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.etat-erreur-historique { color: var(--alerte); }
+
 /* ============================================================================
    Adaptation mobile -- volontairement en tout dernier dans ce fichier.
    Les media queries n'ont pas une spécificité supérieure aux règles
@@ -573,6 +675,16 @@ table.donnees tr:hover td { background: #FAF6F3; }
      conteneur (overflow-x: auto ci-dessous) devient scrollable au doigt. */
   .bloc-tableau table.donnees { width: auto; min-width: 640px; }
   .bloc-tableau { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .filtres-operations {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 3px;
+    scroll-snap-type: x proximity;
+  }
+  .filtre-operation { min-width: 138px; scroll-snap-align: start; }
+  .filtres-historique { grid-template-columns: 1fr 1fr; }
+  .champ-recherche-historique { grid-column: 1 / -1; }
+  .etape-operation .tableau-titre { position: sticky; left: 0; }
   .ligne-colis-form { grid-template-columns: 1fr; }
   .ligne-colis-form .retirer-ligne, .ligne-colis-form [data-retirer-ligne] { justify-self: start; }
 }

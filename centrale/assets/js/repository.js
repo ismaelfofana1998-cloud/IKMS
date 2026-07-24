@@ -192,7 +192,9 @@ export async function compterActionsEnAttente(idHubAgent = null) {
     requeteRamassage, requeteReception, requeteRetoursRecus, requeteRetoursAAssigner, requeteLots
   ]);
   const nbCommandesRamassage = new Set((ramassage.data || []).map((c) => c.id_commande)).size;
+  const operations = nbCommandesRamassage + (reception.count || 0) + (lots.count || 0);
   return {
+    operations,
     ramassage: nbCommandesRamassage,
     reception: reception.count || 0,
     lots: lots.count || 0,
@@ -304,6 +306,30 @@ export async function listerCommandes({ idHubAgent = null, aujourdhuiSeulement =
   const { data, error } = await requete;
   if (error) throw error;
   return data || [];
+}
+
+export async function listerHistoriqueCommandes({
+  recherche = "",
+  statut = "",
+  dateDebut = "",
+  dateFin = "",
+  page = 0,
+  limite = 50
+} = {}) {
+  const { data, error } = await sb().rpc("rpc_historique_commandes", {
+    p_recherche: recherche.trim() || null,
+    p_statut: statut || null,
+    p_date_debut: dateDebut || null,
+    p_date_fin: dateFin || null,
+    p_limite: limite,
+    p_offset: page * limite
+  });
+  if (error) throw error;
+  const lignes = data || [];
+  return {
+    lignes,
+    total: Number(lignes[0]?.total_lignes || 0)
+  };
 }
 
 export async function listerColisDeCommande(idCommande) {

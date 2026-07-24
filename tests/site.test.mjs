@@ -265,7 +265,7 @@ test("les identifiants metier utilisent la date et un compteur extensible", asyn
   assert.match(migration, /when v_valeur < 1000 then lpad\(v_valeur::text,\s*3,\s*'0'\)/);
   assert.match(migration, /else v_valeur::text/);
   assert.match(migration, /add column if not exists id_ramassage text/);
-  assert.match(migration, /code_ramassage reste le\s*\n?-- code aleatoire secret/i);
+  assert.doesNotMatch(migration, /set\s+code_ramassage\s*=/i);
   assert.match(repository, /id_commande, id_ramassage/);
   assert.match(tableauDeBord, /c\.id_ramassage \|\| c\.id_commande/);
   assert.match(styles, /background:\s*#FDFBFA/);
@@ -315,4 +315,65 @@ test("la gestion des zones reste exploitable avec de nombreuses paires", async (
   assert.match(repository, /\.upsert\(\s*lignes/);
   assert.match(styles, /\.grille-tarifs-zone/);
   assert.match(styles, /\.recherche-zones-tarifs/);
+});
+
+test("les opérations remplacent les écrans fragmentés sans changer les RPC métier", async () => {
+  const [shell, app, operations, repository, styles] = await Promise.all([
+    readFile(join(root, "centrale/assets/js/shell.js"), "utf8"),
+    readFile(join(root, "centrale/assets/js/app.js"), "utf8"),
+    readFile(join(root, "centrale/assets/js/panels/operations.js"), "utf8"),
+    readFile(join(root, "centrale/assets/js/repository.js"), "utf8"),
+    readFile(join(root, "centrale/assets/css/centrale.css"), "utf8")
+  ]);
+
+  assert.match(shell, /id:\s*"operations",\s*label:\s*"Opérations"/);
+  assert.match(shell, /id:\s*"historique",\s*label:\s*"Historique des commandes"/);
+  assert.doesNotMatch(shell, /id:\s*"(commandes|ramassage|reception|lots)",\s*label:/);
+  assert.match(app, /operations:\s*\(\)\s*=>\s*import\("\.\/panels\/operations\.js"\)/);
+  assert.match(app, /\["commandes",\s*"ramassage",\s*"reception",\s*"lots"\]\.includes\(id\)/);
+  assert.match(operations, /Assigner le ramassage/);
+  assert.match(operations, /Réceptionner le colis/);
+  assert.match(operations, /Créer le lot/);
+  assert.match(operations, /Valider le départ/);
+  assert.match(operations, /sectionLots\(lotsActifs,\s*"LIVRAISON"\)/);
+  assert.match(repository, /operations,\s*\n\s*ramassage:/);
+  assert.match(styles, /\.filtres-operations/);
+});
+
+test("l'historique est recherché côté serveur, paginé et exporté en xlsx", async () => {
+  const [historique, repository, migration] = await Promise.all([
+    readFile(join(root, "centrale/assets/js/panels/historique.js"), "utf8"),
+    readFile(join(root, "centrale/assets/js/repository.js"), "utf8"),
+    readFile(join(root, "supabase/migrations/58_operations_historique.sql"), "utf8")
+  ]);
+  const { creerClasseurHistorique } = await import("../centrale/assets/js/excel.js");
+
+  assert.match(historique, /Exporter en Excel/);
+  assert.match(historique, /CMD, RM, COL, LIV/);
+  assert.match(historique, /tailleLot = 1000/);
+  assert.match(repository, /\.rpc\("rpc_historique_commandes"/);
+  assert.match(migration, /security definer/);
+  assert.match(migration, /cmd\.id_entreprise = v_entreprise/);
+  assert.match(migration, /count\(\*\) over\(\) as total_lignes/);
+  assert.match(migration, /grant execute on function public\.rpc_historique_commandes/);
+
+  const classeur = creerClasseurHistorique([{
+    id_commande: "CMD-260724-001",
+    id_ramassage: "RM-260724-001",
+    id_colis: "COL-260724-001",
+    id_lot: "LIV-260724-001",
+    statut_commande_libelle: "Terminée",
+    statut_colis_libelle: "Livré",
+    expediteur_nom: "Aïcha",
+    destinataire_nom: "Koffi",
+    montant_livraison: 2500,
+    cree_le: "2026-07-24T10:00:00Z",
+    maj_le: "2026-07-24T12:00:00Z"
+  }]);
+  const octets = new Uint8Array(await classeur.arrayBuffer());
+  assert.deepEqual([...octets.slice(0, 4)], [0x50, 0x4B, 0x03, 0x04]);
+  const contenu = new TextDecoder().decode(octets);
+  assert.match(contenu, /Historique/);
+  assert.match(contenu, /Statut colis/);
+  assert.match(contenu, /CMD-260724-001/);
 });
