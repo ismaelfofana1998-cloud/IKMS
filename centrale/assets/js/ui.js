@@ -56,11 +56,13 @@ const LIBELLES_STATUT = {
   LIVRE: ["valide", "Livré"],
   RETOUR_EN_COURS: ["alerte", "Retour en cours"],
   RETOUR_DEMANDE: ["alerte", "Retour demandé"],
+  RETOUR_RECU: ["alerte", "Retour reçu"],
   A_RETOURNER: ["alerte", "À retourner"],
   RETOUR_ASSIGNE: ["alerte", "Retour assigné"],
   RETOUR_RECUP_DEMANDEE: ["alerte", "Récup. retour demandée"],
   EN_RETOUR: ["alerte", "En retour"],
   RETOURNE: ["neutre", "Retourné"],
+  POINT_RELAIS: ["transit", "Point relais"],
   ANNULE: ["neutre", "Annulé"],
   EN_ATTENTE: ["attente", "En attente"],
   RAMASSAGE_EN_COURS: ["ramasse", "Ramassage en cours"],
@@ -75,6 +77,10 @@ const LIBELLES_STATUT = {
 export function tampon(statut) {
   const [classe, libelle] = LIBELLES_STATUT[statut] || ["neutre", statut];
   return `<span class="tampon ${classe}">${libelle}</span>`;
+}
+
+export function libelleStatut(statut) {
+  return (LIBELLES_STATUT[statut] || ["neutre", statut || "—"])[1];
 }
 
 // Petit badge d'avertissement, réutilisé partout où une alerte de zone

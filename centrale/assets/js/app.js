@@ -10,10 +10,8 @@ let minuterieFermetureMenu = null;
 
 const PANNEAUX = {
   "tableau-de-bord": () => import("./panels/tableau-de-bord.js"),
-  commandes: () => import("./panels/commande.js"),
-  ramassage: () => import("./panels/ramassage.js"),
-  reception: () => import("./panels/reception.js"),
-  lots: () => import("./panels/lots.js"),
+  operations: () => import("./panels/operations.js"),
+  historique: () => import("./panels/historique.js"),
   retours: () => import("./panels/retours.js"),
   caisse: () => import("./panels/caisse.js"),
   "ma-caisse": () => import("./panels/ma-caisse.js"),
@@ -26,7 +24,7 @@ const PANNEAUX = {
 async function monterPanneau(id) {
   const item = NAV_ITEMS.find((i) => i.id === id);
   if (!item || !item.roles.includes(profil.role)) {
-    id = NAV_ITEMS.find((i) => i.roles.includes(profil.role))?.id || "commandes";
+    id = NAV_ITEMS.find((i) => i.roles.includes(profil.role))?.id || "operations";
   }
 
   if (typeof nettoyagePanneauActif === "function") nettoyagePanneauActif();
@@ -45,6 +43,7 @@ async function monterPanneau(id) {
     document.querySelector("#sous-titre-panneau").textContent = module.sousTitre || "";
     nettoyagePanneauActif = await module.monter(conteneur, actions, profil);
   } catch (err) {
+    console.error(`Impossible de charger le panneau ${id}`, err);
     conteneur.innerHTML = `<div class="chargement-panneau">Une erreur est survenue en chargeant cet écran. Recharge la page.</div>`;
   }
 
@@ -58,7 +57,8 @@ async function monterPanneau(id) {
 }
 
 function idPanneauActif() {
-  return (window.location.hash || "#tableau-de-bord").replace("#", "");
+  const id = (window.location.hash || "#tableau-de-bord").replace("#", "");
+  return ["commandes", "ramassage", "reception", "lots"].includes(id) ? "operations" : id;
 }
 
 // Bulles de notification sur les onglets (ramassage/réception/retours en

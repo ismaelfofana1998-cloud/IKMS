@@ -32,7 +32,7 @@ function ligneColisHtml(index) {
     </div>`;
 }
 
-export async function monter(conteneur, actionsContainer, profil) {
+export async function monter(conteneur, actionsContainer, profil, options = {}) {
   const idHubAgent = profil?.role === "agent" ? profil.id_hub_affecte : null;
   actionsContainer.innerHTML = `<button class="btn btn-primaire" id="btn-nouvelle-commande">+ Nouvelle commande</button>`;
 
@@ -402,13 +402,28 @@ export async function monter(conteneur, actionsContainer, profil) {
           attacherPartage(boite);
         });
 
-        rafraichir();
+        if (typeof options.apresCreation === "function") options.apresCreation();
+        else rafraichir();
       });
     });
+  }
+
+  if (options.ouvrirCreationSeulement) {
+    await ouvrirFormulaireCommande();
+    return () => fermerModale();
   }
 
   actionsContainer.querySelector("#btn-nouvelle-commande").addEventListener("click", ouvrirFormulaireCommande);
   await rafraichir();
 
   return () => fermerModale();
+}
+
+export async function ouvrirCreationCommande(profil, apresCreation) {
+  const conteneur = document.createElement("div");
+  const actions = document.createElement("div");
+  return monter(conteneur, actions, profil, {
+    ouvrirCreationSeulement: true,
+    apresCreation
+  });
 }
