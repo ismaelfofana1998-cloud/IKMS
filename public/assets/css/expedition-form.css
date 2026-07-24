@@ -1,0 +1,149 @@
+/* ============================================================================
+   Champs et composants du formulaire — même thème que les pages internes :
+   cartes blanches, bordures fines, texte sombre. Plus de "verre" translucide
+   pensé pour se fondre dans une photo -- il n'y a plus de photo.
+   ============================================================================ */
+
+.message-erreur-pub {
+  position: fixed; left: 50%; top: calc(16px + env(safe-area-inset-top, 0px));
+  transform: translateX(-50%) translateY(-140%);
+  z-index: 50; max-width: min(92vw, 480px); width: max-content;
+  background: var(--alerte-fond); border: 1.5px solid var(--alerte); color: var(--alerte);
+  border-radius: 14px; padding: 14px 40px 14px 16px; font-size: 13.5px; line-height: 1.4;
+  box-shadow: var(--ombre-forte);
+  opacity: 0; transition: transform 280ms ease, opacity 280ms ease;
+  pointer-events: none;
+}
+.message-erreur-pub.visible { transform: translateX(-50%) translateY(0); opacity: 1; pointer-events: auto; }
+.message-erreur-pub .fermer-erreur {
+  position: absolute; top: 8px; right: 10px; background: none; border: none;
+  color: var(--alerte); font-size: 18px; line-height: 1; padding: 4px; opacity: 0.7;
+}
+
+.rubrique-titre {
+  font-family: var(--police-titre); font-size: 20px; font-weight: 700; letter-spacing: -0.01em;
+  color: var(--ink); margin: 0 0 18px;
+}
+
+.champ-pub { margin-bottom: 16px; }
+.champ-pub label {
+  display: block; font-size: 12.5px; font-weight: 700; color: var(--ink-soft); margin-bottom: 7px;
+  letter-spacing: 0.01em;
+}
+.champ-pub input, .champ-pub select, .champ-pub textarea {
+  width: 100%; min-height: 48px; border-radius: 12px; padding: 0 14px; font-size: 16px;
+  background: #FBF8F5;
+  border: 1.5px solid var(--ligne);
+  color: var(--ink);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.champ-pub input::placeholder, .champ-pub textarea::placeholder { color: var(--ink-soft); opacity: 0.6; }
+.champ-pub input:focus, .champ-pub select:focus, .champ-pub textarea:focus {
+  outline: none; border-color: var(--terracotta); background: var(--papier);
+}
+.champ-pub input.champ-invalide { border-color: var(--alerte); background: var(--alerte-fond); }
+.champ-pub select option { background: var(--papier); color: var(--ink); }
+.selecteur-zone .secteur-select { margin-top: 8px; }
+
+.badge-auto {
+  display: inline-block; font-size: 10.5px; font-weight: 700; color: var(--valide);
+  text-transform: none; letter-spacing: normal; margin-left: 6px;
+}
+.aide-zone { font-size: 12px; color: var(--ink-soft); margin: 6px 0 0; }
+.avertissement-zone {
+  font-size: 12.5px; color: var(--attente); background: var(--attente-fond);
+  border: 1px solid rgba(0,0,0,0.06); border-radius: 10px; padding: 9px 12px; margin-top: 8px;
+}
+.confirmation-alerte-zone {
+  display: flex; align-items: flex-start; gap: 8px; margin-top: 8px;
+  font-size: 12px; font-weight: 600; color: var(--ink); cursor: pointer;
+}
+.confirmation-alerte-zone input[type="checkbox"] {
+  margin-top: 2px; width: 16px; height: 16px; accent-color: var(--terracotta); cursor: pointer; flex-shrink: 0;
+}
+.mention-optionnelle { font-size: 11px; font-weight: 400; color: var(--ink-soft); text-transform: none; letter-spacing: normal; }
+
+.champ-adresse-icone { position: relative; }
+.champ-adresse-icone input { padding-right: 46px; }
+.btn-geoloc-icone {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  width: 34px; height: 34px; border-radius: 50%; background: var(--attente-fond);
+  border: 1.5px solid var(--ligne); font-size: 15px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+}
+.btn-geoloc-icone:active { background: var(--creme); }
+.btn-geoloc-icone[data-etat="chargement"] { opacity: 0.5; }
+.btn-geoloc-icone[data-etat="succes"] { background: var(--valide-fond); border-color: var(--valide); }
+
+.liste-suggestions {
+  border-radius: 12px; overflow: hidden; z-index: 9999;
+  background: var(--papier);
+  border: 1.5px solid var(--ligne);
+  box-shadow: var(--ombre-forte);
+}
+.suggestion-adresse {
+  display: block; width: 100%; text-align: left; padding: 11px 14px; font-size: 13.5px;
+  background: none; border: none; color: var(--ink); border-bottom: 1px solid var(--ligne);
+}
+.suggestion-adresse:last-child { border-bottom: none; }
+.suggestion-adresse:active { background: var(--creme); }
+
+.carte-colis-pub {
+  background: var(--surface-secondaire); border: 1px solid var(--ligne); border-radius: 16px;
+  padding: 18px 16px 6px; margin: 18px 0; position: relative;
+}
+.carte-colis-pub .retirer-colis {
+  position: absolute; top: 12px; right: 14px; background: none; border: none; color: var(--ink-soft);
+  font-size: 12px; font-weight: 700;
+}
+.prix-estime {
+  font-size: 16px; color: var(--terracotta-deep); margin-top: 4px; margin-bottom: 14px; font-weight: 700;
+  background: var(--attente-fond); border: 1px solid var(--ligne); border-radius: 10px;
+  padding: 10px 14px; display: inline-block;
+}
+.carte-trajet { position: relative; margin-bottom: 4px; }
+.carte-trajet .retirer-trajet {
+  position: absolute; top: 0; right: 0; background: none; border: none; color: var(--ink-soft); font-size: 12px; font-weight: 700;
+}
+.prix-total {
+  font-size: 20px; font-weight: 700; color: var(--ink); text-align: center;
+  background: var(--attente-fond); border: 1px solid var(--ligne); border-radius: 14px;
+  padding: 14px; margin: 4px 0 12px;
+}
+.bandeau-compte {
+  background: var(--valide-fond); border: 1px solid rgba(0,0,0,0.06); border-radius: 12px;
+  padding: 12px 14px; margin-bottom: 16px; font-size: 13.5px; color: var(--ink);
+  display: flex; justify-content: space-between; align-items: center; gap: 10px;
+}
+.bandeau-compte button { background: none; border: none; color: var(--ink-soft); font-size: 12px; text-decoration: underline; }
+.proposition-compte-carte {
+  background: var(--surface-secondaire); border: 1px solid var(--ligne); border-radius: 14px;
+  padding: 16px; margin: 16px 0; font-size: 13.5px;
+}
+.proposition-compte-carte p { margin: 0 0 12px; color: var(--ink-soft); }
+.lien-connexion-inline { background: none; border: none; color: var(--terracotta); font-weight: 700; font-size: 13px; text-decoration: underline; padding: 0; }
+
+.btn-pub {
+  min-height: 50px; width: 100%; border: none; border-radius: 12px;
+  font-size: 15.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-pub-primaire {
+  background: var(--terracotta);
+  color: #fff; box-shadow: var(--ombre-accent);
+  margin-top: 8px;
+}
+.btn-pub-primaire:active { background: var(--terracotta-deep); }
+.btn-pub-discret { background: var(--papier); border: 1.5px solid var(--ligne); color: var(--ink-soft); margin-bottom: 6px; }
+.btn-pub-secondaire { background: var(--peche); color: var(--ink); }
+.btn-pub:disabled { opacity: 0.55; box-shadow: none; }
+
+#confirmation-contenu:not(:empty) { margin-top: 20px; }
+.recap-code {
+  background: var(--surface-secondaire); border: 1px solid var(--ligne);
+  border-radius: 18px; padding: 20px; text-align: center; margin-bottom: 14px;
+}
+.recap-code .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--terracotta); margin-bottom: 8px; }
+.recap-code .code { font-family: var(--police-compteur); font-size: 30px; font-weight: 700; letter-spacing: 0.15em; color: var(--ink); }
+.bloc-recap { background: var(--surface-secondaire); border: 1px solid var(--ligne); border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; }
+.bloc-recap h3 { font-size: 14px; margin: 0 0 8px; color: var(--ink); }
+.ligne-lien { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 6px 0; font-size: 13px; color: var(--ink-soft); }
