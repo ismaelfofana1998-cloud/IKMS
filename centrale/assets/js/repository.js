@@ -736,6 +736,27 @@ export async function enregistrerTarifPaire({ zoneDepart, zoneArrivee, montant }
   return { ok: !error, message: error?.message };
 }
 
+export async function enregistrerTarifsPairesPourZone({ codeZone, tarifs }, idEntreprise) {
+  const nouveauCode = codeZone.toUpperCase();
+  const lignes = tarifs.map((tarif) => {
+    const autreCode = tarif.codeZone.toUpperCase();
+    const zoneA = nouveauCode <= autreCode ? nouveauCode : autreCode;
+    const zoneB = nouveauCode <= autreCode ? autreCode : nouveauCode;
+    return {
+      id_entreprise: idEntreprise,
+      zone_a: zoneA,
+      zone_b: zoneB,
+      montant: tarif.montant,
+      actif: true
+    };
+  });
+  const { error } = await sb().from("zones_tarifs_paires").upsert(
+    lignes,
+    { onConflict: "id_entreprise,zone_a,zone_b" }
+  );
+  return { ok: !error, message: error?.message };
+}
+
 export async function desactiverTarifPaire(id) {
   const { error } = await sb().from("zones_tarifs_paires").update({ actif: false }).eq("id", id);
   return { ok: !error, message: error?.message };
