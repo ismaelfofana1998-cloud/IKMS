@@ -282,10 +282,10 @@ test("l'écran opérations reste dense, repliable et ne masque pas ses actions",
 
   assert.match(operations, /<details class="bloc-tableau etape-operation"/);
   assert.match(operations, /<summary class="tableau-titre entete-etape-operation">/);
-  assert.match(operations, /class="identifiant-operation"/);
+  assert.match(operations, /class="identifiant-operation identifiant-metier"/);
   assert.match(operations, /class="adresse-operation"/);
   assert.match(styles, /\.etape-operation table\.donnees td\s*\{[^}]*padding:\s*10px 14px/s);
-  assert.match(styles, /\.identifiant-operation\s*\{[^}]*font-family:\s*inherit/s);
+  assert.match(styles, /\.identifiant-operation,\s*\.identifiant-metier\s*\{[^}]*font-family:\s*inherit/s);
   assert.match(interfaceUtilisateur, /zone-messages-flash/);
   assert.match(styles, /\.zone-messages-flash\s*\{[^}]*bottom:\s*22px/s);
   assert.doesNotMatch(styles, /\.message-flash\s*\{[^}]*top:/s);
@@ -394,4 +394,55 @@ test("l'historique est recherché côté serveur, paginé et exporté en xlsx", 
   assert.match(contenu, /Historique/);
   assert.match(contenu, /Statut colis/);
   assert.match(contenu, /CMD-260724-001/);
+});
+
+test("les écrans historiques, expédition et retours privilégient l'information utile", async () => {
+  const [
+    historique,
+    operations,
+    retours,
+    operationsRepository,
+    stylesCentrale,
+    expedition,
+    expeditionSubmit,
+    stylesExpedition,
+    stylesFormulaire,
+    livreur,
+    stylesLivreur
+  ] = await Promise.all([
+    readFile(join(root, "centrale/assets/js/panels/historique.js"), "utf8"),
+    readFile(join(root, "centrale/assets/js/panels/operations.js"), "utf8"),
+    readFile(join(root, "centrale/assets/js/panels/retours.js"), "utf8"),
+    readFile(join(root, "centrale/assets/js/repository.js"), "utf8"),
+    readFile(join(root, "centrale/assets/css/centrale.css"), "utf8"),
+    readFile(join(root, "public/assets/js/expedition-externe.js"), "utf8"),
+    readFile(join(root, "public/assets/js/expedition-submit.js"), "utf8"),
+    readFile(join(root, "public/assets/css/expedition-externe.css"), "utf8"),
+    readFile(join(root, "public/assets/css/expedition-form.css"), "utf8"),
+    readFile(join(root, "livreur/assets/js/app.js"), "utf8"),
+    readFile(join(root, "livreur/assets/css/livreur.css"), "utf8")
+  ]);
+
+  assert.match(historique, /class="identifiant-metier"/);
+  assert.match(historique, /class="barre-resultats-historique"/);
+  assert.match(stylesCentrale, /\.historique-commandes td\s*\{[^}]*padding:\s*9px 12px/s);
+
+  assert.doesNotMatch(expedition, /token_expediteur/);
+  assert.match(expedition, /Partager avec le destinataire/);
+  assert.match(expeditionSubmit, /\.rpc\("rpc_creer_commande"/);
+  assert.match(operations, /data-partager-position-expediteur/);
+  assert.match(operations, /POSITION_EXPEDITEUR/);
+  assert.match(stylesExpedition, /body\s*\{[^}]*background:\s*var\(--surface-secondaire\)/s);
+  assert.match(stylesFormulaire, /\.btn-partage-destinataire/);
+
+  assert.match(livreur, /voile-choix-hub-retour/);
+  assert.match(livreur, /class="choix-hub-retour"/);
+  assert.match(stylesLivreur, /\.voile-choix-hub-retour\s*\{[^}]*align-items:\s*center/s);
+
+  assert.match(retours, /data-etape-retour/);
+  assert.match(retours, /data-choisir-decision/);
+  assert.match(retours, /Aucun retour à traiter/);
+  assert.match(stylesCentrale, /\.filtres-retours/);
+  assert.match(operationsRepository, /\.in\("statut",\s*\["EN_LOT",\s*"RECUP_DEMANDEE",\s*"EN_TOURNEE"\]\)/);
+  assert.match(operationsRepository, /idsLotsLivraisonActifs/);
 });

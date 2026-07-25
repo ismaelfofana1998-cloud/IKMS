@@ -7,104 +7,151 @@ import {
 import { afficherFlash, escapeHtml, formaterFcfa, libelleMotif, ouvrirModale, fermerModale, copierTexte } from "../ui.js";
 
 export const titre = "Retours à traiter";
-export const sousTitre = "Les colis retournés se déversent ici dès qu'ils sont reçus au hub.";
+export const sousTitre = "";
+
+const ETAPES_RETOUR = [
+  ["DECISION", "À décider"],
+  ["ASSIGNATION", "À assigner"],
+  ["RECUPERATION", "Récupérations"],
+  ["RELAIS", "Points relais"]
+];
 
 export async function monter(conteneur, actionsContainer, profil) {
   const idHubAgent = profil?.role === "agent" ? profil.id_hub_affecte : null;
   const livreurs = await listerLivreursActifs();
+  let etapeActive = "DECISION";
+  let etapeInitialisee = false;
+  let donnees = { recus: [], aRetourner: [], recupsRetour: [], enPointRelais: [] };
 
-  async function rafraichir() {
-    const [recus, aRetourner, recupsRetour, enPointRelais] = await Promise.all([
-      listerColisRetourRecu(idHubAgent), listerColisARetourner(idHubAgent), listerRetoursEnRecuperation(), listerColisPointRelais(idHubAgent)
-    ]);
+  actionsContainer.innerHTML = `<button class="btn btn-discret" id="btn-actualiser-retours">Actualiser</button>`;
+
+  function rendreRetours() {
+    const { recus, aRetourner, recupsRetour, enPointRelais } = donnees;
+    const compteurs = {
+      DECISION: recus.length,
+      ASSIGNATION: aRetourner.length,
+      RECUPERATION: recupsRetour.length,
+      RELAIS: enPointRelais.length
+    };
+    const total = Object.values(compteurs).reduce((somme, nombre) => somme + nombre, 0);
+
+    if (!etapeInitialisee) {
+      etapeActive = ETAPES_RETOUR.find(([id]) => compteurs[id] > 0)?.[0] || "DECISION";
+      etapeInitialisee = true;
+    }
+
+    const decisionHtml = `
+      <div class="tableau-defilant">
+        <table class="donnees tableau-retours">
+          <thead><tr><th>Colis</th><th>Destinataire</th><th>Motif</th><th></th></tr></thead>
+          <tbody>
+            ${recus.map((c) => `
+              <tr>
+                <td class="identifiant-metier">${escapeHtml(c.id_colis)}</td>
+                <td>${escapeHtml(c.destinataire_nom)}</td>
+                <td>${libelleMotif(c.motif_retour)}</td>
+                <td class="cellule-actions">
+                  <button class="btn btn-primaire btn-petit" data-choisir-decision="${c.id_colis}">Décider</button>
+                </td>
+              </tr>`).join("")}
+          </tbody>
+        </table>
+      </div>`;
+
+    const assignationHtml = `
+      <div class="barre-assignation-groupee barre-retours">
+        <select id="select-livreur-groupe-retour">
+          <option value="">Assigner la sélection à…</option>
+          ${livreurs.map((l) => `<option value="${l.id_utilisateur}">${escapeHtml(l.nom)}</option>`).join("")}
+        </select>
+        <button class="btn btn-primaire btn-petit" id="btn-assigner-groupe-retour" disabled>Assigner</button>
+        <span id="compteur-selection-retour" class="compteur-selection"></span>
+      </div>
+      <div class="tableau-defilant">
+        <table class="donnees tableau-retours">
+          <thead><tr><th></th><th>Colis</th><th>Destinataire</th><th>Motif</th><th></th></tr></thead>
+          <tbody>
+            ${aRetourner.map((c) => `
+              <tr>
+                <td><input type="checkbox" class="case-retour" value="${c.id_colis}"></td>
+                <td class="identifiant-metier">${escapeHtml(c.id_colis)}</td>
+                <td>${escapeHtml(c.destinataire_nom)}</td>
+                <td>${libelleMotif(c.motif_retour)}</td>
+                <td class="cellule-actions"><button class="btn btn-primaire btn-petit" data-assigner-retour="${c.id_colis}">Assigner</button></td>
+              </tr>`).join("")}
+          </tbody>
+        </table>
+      </div>`;
+
+    const recuperationHtml = `
+      <div class="tableau-defilant">
+        <table class="donnees tableau-retours">
+          <thead><tr><th>Colis</th><th>Destinataire</th><th>Livreur</th><th>Statut</th><th></th></tr></thead>
+          <tbody>
+            ${recupsRetour.map((c) => `
+              <tr>
+                <td class="identifiant-metier">${escapeHtml(c.id_colis)}</td>
+                <td>${escapeHtml(c.destinataire_nom)}</td>
+                <td>${escapeHtml(livreurs.find((lv) => lv.id_utilisateur === c.id_livreur_retour)?.nom || "—")}</td>
+                <td>${c.statut === "RETOUR_ASSIGNE" ? "Assigné" : "Récupération demandée"}</td>
+                <td class="cellule-actions">
+                  ${c.statut === "RETOUR_RECUP_DEMANDEE"
+                    ? `<button class="btn btn-primaire btn-petit" data-valider-recuperation-retour="${c.id_colis}">Valider</button>`
+                    : `<span class="texte-attente-retour">En attente du livreur</span>`}
+                </td>
+              </tr>`).join("")}
+          </tbody>
+        </table>
+      </div>`;
+
+    const relaisHtml = `
+      <div class="tableau-defilant">
+        <table class="donnees tableau-retours">
+          <thead><tr><th>Colis</th><th>Destinataire</th><th>Hub</th><th></th></tr></thead>
+          <tbody>
+            ${enPointRelais.map((c) => `
+              <tr>
+                <td class="identifiant-metier">${escapeHtml(c.id_colis)}</td>
+                <td>${escapeHtml(c.destinataire_nom)}<small>${escapeHtml(c.destinataire_tel)}</small></td>
+                <td>${escapeHtml(c.hubs?.nom || "—")}</td>
+                <td class="cellule-actions"><button class="btn btn-primaire btn-petit" data-retrait-point-relais="${c.id_colis}">Valider le retrait</button></td>
+              </tr>`).join("")}
+          </tbody>
+        </table>
+      </div>`;
+
+    const fichiers = {
+      DECISION: [recus, "Décisions à prendre", "Aucun retour en attente de décision.", decisionHtml],
+      ASSIGNATION: [aRetourner, "Retours à assigner", "Aucun retour en attente d’assignation.", assignationHtml],
+      RECUPERATION: [recupsRetour, "Récupérations au hub", "Aucune récupération de retour en attente.", recuperationHtml],
+      RELAIS: [enPointRelais, "Retraits en point relais", "Aucun colis en attente de retrait.", relaisHtml]
+    };
+    const [elements, titreFile, messageVide, contenuFile] = fichiers[etapeActive];
 
     conteneur.innerHTML = `
-      <div class="bloc-tableau">
-        <div class="tableau-titre">Reçus au hub — décision à prendre (${recus.length})</div>
-        ${recus.length ? `
-          <table class="donnees">
-            <thead><tr><th>Colis</th><th>Destinataire</th><th>Motif</th><th></th></tr></thead>
-            <tbody>
-              ${recus.map((c) => `
-                <tr>
-                  <td class="cellule-donnee">${escapeHtml(c.id_colis)}</td>
-                  <td>${escapeHtml(c.destinataire_nom)}</td>
-                  <td>${libelleMotif(c.motif_retour)}</td>
-                  <td class="cellule-actions">
-                    <button class="btn btn-secondaire btn-petit" data-reprogrammer="${c.id_colis}">Reprogrammer</button>
-                    <button class="btn btn-discret btn-petit" data-point-relais="${c.id_colis}">Point relais</button>
-                    <button class="btn btn-alerte btn-petit" data-retour-expediteur="${c.id_colis}">Retour expéditeur</button>
-                  </td>
-                </tr>`).join("")}
-            </tbody>
-          </table>` : `<div class="etat-vide-tableau">Aucun retour en attente de décision.</div>`}
-      </div>
+      ${total ? `
+        <div class="filtres-operations filtres-retours" role="tablist" aria-label="Étapes des retours">
+          ${ETAPES_RETOUR.map(([id, libelle]) => `
+            <button class="filtre-operation" role="tab" data-etape-retour="${id}" aria-selected="${etapeActive === id}" aria-current="${etapeActive === id}">
+              <span>${libelle}</span><strong>${compteurs[id]}</strong>
+            </button>`).join("")}
+        </div>
+        <div class="bloc-tableau retours-epures">
+          <div class="barre-resultats-historique"><span>${titreFile}</span><small>${elements.length}</small></div>
+          ${elements.length ? contenuFile : `<div class="etat-vide-tableau">${messageVide}</div>`}
+        </div>
+      ` : `
+        <div class="etat-vide-retours">
+          <strong>Aucun retour à traiter</strong>
+          <span>Les prochains retours apparaîtront ici dès leur réception au hub.</span>
+        </div>`}`;
 
-      <div class="bloc-tableau" style="margin-top:18px;">
-        <div class="tableau-titre">À assigner pour le retour (${aRetourner.length})</div>
-        ${aRetourner.some(() => true) ? `
-          <div class="barre-assignation-groupee">
-            <select id="select-livreur-groupe-retour">
-              <option value="">Assigner la sélection à…</option>
-              ${livreurs.map((l) => `<option value="${l.id_utilisateur}">${escapeHtml(l.nom)}</option>`).join("")}
-            </select>
-            <button class="btn btn-primaire btn-petit" id="btn-assigner-groupe-retour" disabled>Assigner la sélection</button>
-            <span id="compteur-selection-retour" class="compteur-selection"></span>
-          </div>` : ""}
-        ${aRetourner.length ? `
-          <table class="donnees">
-            <thead><tr><th></th><th>Colis</th><th>Destinataire</th><th>Motif</th><th></th></tr></thead>
-            <tbody>
-              ${aRetourner.map((c) => `
-                <tr>
-                  <td><input type="checkbox" class="case-retour" value="${c.id_colis}"></td>
-                  <td class="cellule-donnee">${escapeHtml(c.id_colis)}</td>
-                  <td>${escapeHtml(c.destinataire_nom)}</td>
-                  <td>${libelleMotif(c.motif_retour)}</td>
-                  <td class="cellule-actions"><button class="btn btn-primaire btn-petit" data-assigner-retour="${c.id_colis}">Assigner</button></td>
-                </tr>`).join("")}
-            </tbody>
-          </table>` : `<div class="etat-vide-tableau">Aucun retour en attente d'assignation.</div>`}
-      </div>
-
-      <div class="bloc-tableau" style="margin-top:18px;">
-        <div class="tableau-titre">Retours assignés en attente de récupération au hub (${recupsRetour.length})</div>
-        ${recupsRetour.length ? `
-          <table class="donnees">
-            <thead><tr><th>Colis</th><th>Destinataire</th><th>Livreur</th><th>Statut</th><th></th></tr></thead>
-            <tbody>
-              ${recupsRetour.map((c) => `
-                <tr>
-                  <td class="cellule-donnee">${escapeHtml(c.id_colis)}</td>
-                  <td>${escapeHtml(c.destinataire_nom)}</td>
-                  <td>${livreurs.find((lv) => lv.id_utilisateur === c.id_livreur_retour)?.nom || "—"}</td>
-                  <td>${c.statut === "RETOUR_ASSIGNE" ? "Assigné" : "Récupération demandée"}</td>
-                  <td class="cellule-actions">
-                    ${c.statut === "RETOUR_RECUP_DEMANDEE"
-                      ? `<button class="btn btn-primaire btn-petit" data-valider-recuperation-retour="${c.id_colis}">Valider la récupération</button>`
-                      : `<span style="color:var(--ink-soft);font-size:12px;">En attente du livreur</span>`}
-                  </td>
-                </tr>`).join("")}
-            </tbody>
-          </table>` : `<div class="etat-vide-tableau">Aucun retour en attente de récupération.</div>`}
-      </div>
-
-      <div class="bloc-tableau" style="margin-top:18px;">
-        <div class="tableau-titre">En point relais — en attente de retrait (${enPointRelais.length})</div>
-        ${enPointRelais.length ? `
-          <table class="donnees">
-            <thead><tr><th>Colis</th><th>Destinataire</th><th>Hub</th><th></th></tr></thead>
-            <tbody>
-              ${enPointRelais.map((c) => `
-                <tr>
-                  <td class="cellule-donnee">${escapeHtml(c.id_colis)}</td>
-                  <td>${escapeHtml(c.destinataire_nom)}<br><span style="color:var(--ink-soft);font-size:12px;">${escapeHtml(c.destinataire_tel)}</span></td>
-                  <td>${escapeHtml(c.hubs?.nom || "—")}</td>
-                  <td class="cellule-actions"><button class="btn btn-primaire btn-petit" data-retrait-point-relais="${c.id_colis}">Valider le retrait</button></td>
-                </tr>`).join("")}
-            </tbody>
-          </table>` : `<div class="etat-vide-tableau">Aucun colis en attente de retrait.</div>`}
-      </div>`;
+    conteneur.querySelectorAll("[data-etape-retour]").forEach((bouton) => {
+      bouton.addEventListener("click", () => {
+        etapeActive = bouton.dataset.etapeRetour;
+        rendreRetours();
+      });
+    });
 
     conteneur.querySelectorAll("[data-retrait-point-relais]").forEach((btn) => {
       btn.addEventListener("click", () => ouvrirRetraitPointRelais(btn.dataset.retraitPointRelais));
@@ -119,14 +166,8 @@ export async function monter(conteneur, actionsContainer, profil) {
       });
     });
 
-    conteneur.querySelectorAll("[data-reprogrammer]").forEach((btn) => {
-      btn.addEventListener("click", () => confirmerDecision(btn.dataset.reprogrammer, "REPROGRAMMER"));
-    });
-    conteneur.querySelectorAll("[data-point-relais]").forEach((btn) => {
-      btn.addEventListener("click", () => confirmerPointRelais(btn.dataset.pointRelais));
-    });
-    conteneur.querySelectorAll("[data-retour-expediteur]").forEach((btn) => {
-      btn.addEventListener("click", () => confirmerDecision(btn.dataset.retourExpediteur, "EXPEDITEUR"));
+    conteneur.querySelectorAll("[data-choisir-decision]").forEach((btn) => {
+      btn.addEventListener("click", () => ouvrirChoixDecisionRetour(btn.dataset.choisirDecision));
     });
     conteneur.querySelectorAll("[data-assigner-retour]").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -169,6 +210,17 @@ export async function monter(conteneur, actionsContainer, profil) {
     }
   }
 
+  async function rafraichir() {
+    const [recus, aRetourner, recupsRetour, enPointRelais] = await Promise.all([
+      listerColisRetourRecu(idHubAgent),
+      listerColisARetourner(idHubAgent),
+      listerRetoursEnRecuperation(idHubAgent),
+      listerColisPointRelais(idHubAgent)
+    ]);
+    donnees = { recus, aRetourner, recupsRetour, enPointRelais };
+    rendreRetours();
+  }
+
   async function assignerDirectement(idColis, idLivreur, btn) {
     btn.disabled = true;
     const texteInitial = btn.textContent;
@@ -203,6 +255,37 @@ export async function monter(conteneur, actionsContainer, profil) {
         const r = await assignerRetour(idColis, idLivreur);
         if (r.ok) { afficherFlash("Retour assigné"); fermerModale(); rafraichir(); }
         else { erreur.textContent = r.message; erreur.classList.add("visible"); e.currentTarget.disabled = false; }
+      });
+    });
+  }
+
+  function ouvrirChoixDecisionRetour(idColis) {
+    ouvrirModale(`
+      <h2>Que faire de ce colis&nbsp;?</h2>
+      <p class="sous-titre identifiant-metier">${escapeHtml(idColis)}</p>
+      <div class="liste-decisions-retour">
+        <button type="button" data-decision-retour="REPROGRAMMER">
+          <strong>Reprogrammer</strong>
+          <span>Préparer une nouvelle livraison.</span>
+        </button>
+        <button type="button" data-decision-retour="POINT_RELAIS">
+          <strong>Point relais</strong>
+          <span>Conserver le colis dans ce hub pour retrait.</span>
+        </button>
+        <button type="button" data-decision-retour="EXPEDITEUR">
+          <strong>Retour expéditeur</strong>
+          <span>Organiser la restitution à l’expéditeur.</span>
+        </button>
+      </div>
+      <div class="actions-bas"><button class="btn btn-discret" id="btn-annuler-decision">Annuler</button></div>
+    `, (boite) => {
+      boite.querySelector("#btn-annuler-decision").addEventListener("click", fermerModale);
+      boite.querySelectorAll("[data-decision-retour]").forEach((bouton) => {
+        bouton.addEventListener("click", () => {
+          const decision = bouton.dataset.decisionRetour;
+          if (decision === "POINT_RELAIS") confirmerPointRelais(idColis);
+          else confirmerDecision(idColis, decision);
+        });
       });
     });
   }
@@ -376,6 +459,7 @@ export async function monter(conteneur, actionsContainer, profil) {
     });
   }
 
+  actionsContainer.querySelector("#btn-actualiser-retours").addEventListener("click", rafraichir);
   await rafraichir();
   return () => fermerModale();
 }

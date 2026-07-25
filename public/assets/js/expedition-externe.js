@@ -519,22 +519,17 @@ function rendreConfirmation(resultat) {
       <div class="label">Code à donner au livreur au ramassage</div>
       <div class="code">${escapeHtml(premiere.code_ramassage)}</div>
     </div>
-    <div class="bloc-recap">
-      <h3>Votre position (à partager si besoin)</h3>
-      <div class="ligne-lien">
-        <span>Lien de position</span>
-        <button class="btn-pub btn-pub-secondaire" style="width:auto;min-height:36px;padding:0 14px;" data-partager="${urlSuivi(premiere.token_expediteur)}" data-texte="Voici ma position pour le ramassage de mon colis">Partager</button>
-      </div>
-    </div>
-    <div class="bloc-recap">
+    <div class="bloc-recap bloc-partage-destinataires">
       <h3>${resultat.length > 1 ? `${resultat.length} colis créés` : "Colis créé"} · ${new Intl.NumberFormat("fr-FR").format(total)} FCFA</h3>
+      <p class="aide-partage-destinataire">Partage le lien à chaque destinataire pour qu’il puisse transmettre sa position au livreur.</p>
       ${resultat.map((l, i) => `
-        <div class="ligne-lien">
+        <div class="carte-partage-destinataire">
           <span>Colis ${i + 1} · code ${escapeHtml(l.code_livraison)} · ${new Intl.NumberFormat("fr-FR").format(l.montant_livraison || 0)} FCFA</span>
-          <button class="btn-pub btn-pub-secondaire" style="width:auto;min-height:36px;padding:0 14px;" data-partager="${urlSuivi(l.token_destinataire)}" data-texte="Voici le lien pour partager votre position au livreur">Lien destinataire</button>
+          <button class="btn-pub btn-partage-destinataire" data-partager="${urlSuivi(l.token_destinataire)}" data-texte="Voici le lien pour partager votre position au livreur">
+            Partager avec le destinataire
+          </button>
         </div>`).join("")}
     </div>
-    <p style="font-size:12.5px;color:var(--sur-sombre-doux);text-align:center;margin-top:8px;">Envoyez le lien "destinataire" par WhatsApp à chaque personne.</p>
     ${!compteConnecte ? `
       <div class="proposition-compte-carte">
         <p>Envie de ne plus jamais retaper tes informations la prochaine fois ?</p>
