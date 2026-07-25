@@ -518,13 +518,24 @@ export async function listerLots(idHubAgent = null) {
   const { data: lots, error } = await requete;
   if (error) throw error;
 
-  const { data: statuts } = await sb()
-    .from("v_statut_lot")
-    .select("id_lot, statut, fige, nb_colis");
+  const [{ data: statuts, error: erreurStatuts }, { data: colisActifs, error: erreurColisActifs }] = await Promise.all([
+    sb().from("v_statut_lot").select("id_lot, statut, fige, nb_colis"),
+    sb()
+      .from("colis")
+      .select("id_lot")
+      .in("statut", ["EN_LOT", "RECUP_DEMANDEE", "EN_TOURNEE"])
+      .not("id_lot", "is", null)
+  ]);
+  if (erreurStatuts) throw erreurStatuts;
+  if (erreurColisActifs) throw erreurColisActifs;
+
   const parId = {};
   (statuts || []).forEach((s) => { parId[s.id_lot] = s; });
+  const idsLotsLivraisonActifs = new Set((colisActifs || []).map((colis) => colis.id_lot));
 
-  return (lots || []).map((l) => ({ ...l, ...(parId[l.id_lot] || {}) }));
+  return (lots || [])
+    .filter((lot) => idsLotsLivraisonActifs.has(lot.id_lot))
+    .map((lot) => ({ ...lot, ...(parId[lot.id_lot] || {}) }));
 }
 
 // Colis en attente de récupération, directement (sans passer par le lot) —
@@ -622,11 +633,13 @@ export async function obtenirLienCodeRetour(idColis) {
 // Retours déjà assignés à un livreur, en attente de la récupération
 // physique au hub (RETOUR_ASSIGNE = assigné pas encore réclamé,
 // RETOUR_RECUP_DEMANDEE = le livreur a demandé, en attente de validation agent).
-export async function listerRetoursEnRecuperation() {
-  const { data, error } = await sb()
+export async function listerRetoursEnRecuperation(idHubAgent = null) {
+  let requete = sb()
     .from("colis")
-    .select("id_colis, destinataire_nom, statut, id_livreur_retour")
+    .select("id_colis, destinataire_nom, statut, id_livreur_retour, id_hub_reel")
     .in("statut", ["RETOUR_ASSIGNE", "RETOUR_RECUP_DEMANDEE"]);
+  if (idHubAgent) requete = requete.eq("id_hub_reel", idHubAgent);
+  const { data, error } = await requete;
   if (error) throw error;
   return data || [];
 }

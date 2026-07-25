@@ -11,7 +11,9 @@ import {
   creerLot,
   assignerLot,
   validerRecuperationColis,
-  creerNotification
+  creerNotification,
+  lireLiensCommande,
+  construireUrlPartage
 } from "../repository.js";
 import {
   afficherFlash,
@@ -20,7 +22,8 @@ import {
   tampon,
   alerteZone,
   ouvrirModale,
-  fermerModale
+  fermerModale,
+  copierTexte
 } from "../ui.js";
 import { ouvrirCreationCommande } from "./commande.js";
 
@@ -87,8 +90,8 @@ export async function monter(conteneur, actionsContainer, profil) {
                 ${commandes.map((commande) => `
                   <tr>
                     <td><input type="checkbox" class="case-operation-ramassage" value="${escapeHtml(commande.id_commande)}"></td>
-                    <td class="identifiant-operation">${escapeHtml(commande.id_ramassage || "—")}</td>
-                    <td class="identifiant-operation">${escapeHtml(commande.id_commande)}</td>
+                    <td class="identifiant-operation identifiant-metier">${escapeHtml(commande.id_ramassage || "—")}</td>
+                    <td class="identifiant-operation identifiant-metier">${escapeHtml(commande.id_commande)}</td>
                     <td>${escapeHtml(commande.expediteur_nom)}<br><small>${escapeHtml(commande.expediteur_tel)}</small></td>
                     <td>
                       <span class="adresse-operation" title="${escapeHtml(commande.expediteur_adresse || "—")}">${escapeHtml(commande.expediteur_adresse || "—")}</span>
@@ -98,6 +101,9 @@ export async function monter(conteneur, actionsContainer, profil) {
                     <td>${escapeHtml(nomLivreur(commande.id_livreur_ramassage))}</td>
                     <td>${tampon(commande.id_livreur_ramassage ? "A_RAMASSER" : "CREE")}</td>
                     <td class="cellule-actions">
+                      <button class="btn btn-discret btn-petit" data-partager-position-expediteur="${escapeHtml(commande.id_commande)}" title="Partager le lien de position de l’expéditeur">
+                        Position
+                      </button>
                       <button class="btn btn-primaire btn-petit" data-assigner-ramassage="${escapeHtml(commande.id_commande)}">
                         ${commande.id_livreur_ramassage ? "Réassigner" : "Assigner"}
                       </button>
@@ -123,8 +129,8 @@ export async function monter(conteneur, actionsContainer, profil) {
                   const alerte = element.alerte_zone || element.commandes?.alerte_zone_expediteur;
                   return `
                     <tr${alerte ? ' class="ligne-alerte-zone"' : ""}>
-                      <td class="identifiant-operation">${escapeHtml(element.id_colis)}</td>
-                      <td class="identifiant-operation">${escapeHtml(element.id_commande)}</td>
+                      <td class="identifiant-operation identifiant-metier">${escapeHtml(element.id_colis)}</td>
+                      <td class="identifiant-operation identifiant-metier">${escapeHtml(element.id_commande)}</td>
                       <td>${escapeHtml(element.destinataire_nom)}<br>${alerteZone(alerte)}</td>
                       <td>${tampon(element.statut)}</td>
                       <td class="cellule-actions">
@@ -158,7 +164,7 @@ export async function monter(conteneur, actionsContainer, profil) {
                 ${colis.map((element) => `
                   <tr>
                     <td><input type="checkbox" class="case-operation-colis-lot" value="${escapeHtml(element.id_colis)}"></td>
-                    <td class="identifiant-operation">${escapeHtml(element.id_colis)}</td>
+                    <td class="identifiant-operation identifiant-metier">${escapeHtml(element.id_colis)}</td>
                     <td>${escapeHtml(element.destinataire_nom)}<br>${alerteZone(element.alerte_zone)}</td>
                     <td>${escapeHtml(element.code_zone || "—")}</td>
                     <td class="cellule-donnee">${formaterFcfa(element.montant_livraison)} FCFA</td>
@@ -198,7 +204,7 @@ export async function monter(conteneur, actionsContainer, profil) {
                     <td>${section === "DEPART" && !lot.id_livreur
                       ? `<input type="checkbox" class="case-operation-lot" value="${escapeHtml(lot.id_lot)}">`
                       : ""}</td>
-                    <td class="identifiant-operation">${escapeHtml(lot.id_lot)}${lot.note ? `<br><small>${escapeHtml(lot.note)}</small>` : ""}</td>
+                    <td class="identifiant-operation identifiant-metier">${escapeHtml(lot.id_lot)}${lot.note ? `<br><small>${escapeHtml(lot.note)}</small>` : ""}</td>
                     <td>${lot.nb_colis || 0}</td>
                     <td>${escapeHtml(nomLivreur(lot.id_livreur))}</td>
                     <td>${tampon(lot.statut || "PREPARE")}</td>
@@ -333,7 +339,7 @@ export async function monter(conteneur, actionsContainer, profil) {
             <tbody>
               ${colis.map((element) => `
                 <tr>
-                  <td class="identifiant-operation">${escapeHtml(element.id_colis)}</td>
+                  <td class="identifiant-operation identifiant-metier">${escapeHtml(element.id_colis)}</td>
                   <td>${escapeHtml(element.destinataire_nom)}<br><small>${escapeHtml(element.destinataire_adresse || "—")}</small><br>${alerteZone(element.alerte_zone)}</td>
                   <td>${escapeHtml(element.code_zone || "—")}</td>
                   <td>${tampon(element.statut)}</td>
@@ -415,6 +421,34 @@ export async function monter(conteneur, actionsContainer, profil) {
 
     conteneur.querySelectorAll("[data-assigner-ramassage]").forEach((bouton) => {
       bouton.addEventListener("click", () => ouvrirAssignation("RAMASSAGE", bouton.dataset.assignerRamassage));
+    });
+    conteneur.querySelectorAll("[data-partager-position-expediteur]").forEach((bouton) => {
+      bouton.addEventListener("click", async () => {
+        bouton.disabled = true;
+        try {
+          const liens = await lireLiensCommande(bouton.dataset.partagerPositionExpediteur);
+          const lienExpediteur = liens.find((lien) => lien.type === "POSITION_EXPEDITEUR");
+          if (!lienExpediteur) {
+            afficherFlash("Lien de position expéditeur introuvable.", true);
+            return;
+          }
+          const url = construireUrlPartage(lienExpediteur.token);
+          if (navigator.share) {
+            try {
+              await navigator.share({
+                text: "Voici le lien pour partager ta position au livreur",
+                url
+              });
+              return;
+            } catch {
+              return;
+            }
+          }
+          await copierTexte(url);
+        } finally {
+          bouton.disabled = false;
+        }
+      });
     });
     conteneur.querySelectorAll("[data-assigner-lot]").forEach((bouton) => {
       bouton.addEventListener("click", () => ouvrirAssignation("LIVRAISON", bouton.dataset.assignerLot));

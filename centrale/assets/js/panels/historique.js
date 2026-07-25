@@ -95,7 +95,7 @@ export async function monter(conteneur, actionsContainer) {
     const derniere = Math.min((page + 1) * limite, total);
     resultats.innerHTML = `
       <div class="bloc-tableau">
-        <div class="tableau-titre titre-historique">
+        <div class="barre-resultats-historique">
           <span>${total} ligne${total > 1 ? "s" : ""}</span>
           <small>${premiere}–${derniere}</small>
         </div>
@@ -112,11 +112,11 @@ export async function monter(conteneur, actionsContainer) {
               <tbody>
                 ${lignes.map((ligne) => `
                   <tr>
-                    <td class="cellule-donnee">
+                    <td class="identifiant-metier">
                       ${escapeHtml(ligne.id_commande)}
                       <small>${escapeHtml(ligne.id_ramassage || "—")}</small>
                     </td>
-                    <td class="cellule-donnee">
+                    <td class="identifiant-metier">
                       ${escapeHtml(ligne.id_colis)}
                       <small>${escapeHtml(ligne.id_lot || "Sans lot")}</small>
                     </td>

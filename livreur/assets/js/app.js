@@ -42,7 +42,10 @@ function afficherFlash(texte) {
 }
 
 function fermerVoile() {
-  document.querySelector(".voile")?.remove();
+  const voile = document.querySelector(".voile");
+  if (!voile) return;
+  voile.dispatchEvent(new CustomEvent("fermeturevoile"));
+  voile.remove();
 }
 
 function ouvrirVoile(contenuHtml, apresMontage) {
@@ -381,7 +384,9 @@ async function gererAction(dataset) {
   }
   if (action === "demander-depot-retour") {
     const mission = missions.find((m) => m.id_colis === colis);
-    const { idHub, motif } = await ouvrirChoixHubDepotRetour(colis, mission?.id_hub_prevu || null);
+    const choix = await ouvrirChoixHubDepotRetour(colis, mission?.id_hub_prevu || null);
+    if (!choix?.idHub) return;
+    const { idHub, motif } = choix;
     return executerSimple(async () => {
       const r = await demanderDepotRetour(colis, idHub, motif);
       if (r.ok && idHub) {
@@ -420,32 +425,56 @@ async function gererAction(dataset) {
 // choix du tout — toujours le hub d'assignation, automatiquement).
 function ouvrirChoixHubDepotRetour(idColis, idHubPrevu) {
   return new Promise((resolve) => {
-    if (!hubsDisponibles.length) { resolve({ idHub: null, motif: null }); return; }
+    if (!hubsDisponibles.length) { resolve(null); return; }
+    let termine = false;
+    let idHubSelectionne = hubsDisponibles.some((hub) => hub.id_hub === idHubPrevu)
+      ? idHubPrevu
+      : hubsDisponibles[0].id_hub;
+    const terminer = (choix) => {
+      if (termine) return;
+      termine = true;
+      resolve(choix);
+    };
+
     ouvrirVoile(`
-      <h2 class="feuille-titre">Déposer le retour</h2>
-      <p class="feuille-sous">Par défaut, au hub de la commande. Le client n'a pas pu être livré ? Tu peux choisir le hub le plus proche de toi.</p>
-      <div class="champ">
-        <label>Hub de dépôt</label>
-        <select id="select-hub-depot">
-          ${hubsDisponibles.map((h) => `<option value="${h.id_hub}" ${h.id_hub === idHubPrevu ? "selected" : ""}>${escapeHtml(h.nom)}</option>`).join("")}
-        </select>
-        <div class="carte-adresse" id="adresse-hub-depot" style="margin-top:8px;"></div>
+      <div class="entete-choix-hub-retour">
+        <span class="sur-titre-retour">Retour · ${escapeHtml(idColis)}</span>
+        <h2 class="feuille-titre">Dans quel hub déposes-tu le colis&nbsp;?</h2>
+        <p class="feuille-sous">Choisis le lieu où tu vas réellement remettre le retour.</p>
       </div>
-      <button class="btn btn-primaire btn-pleine-largeur" id="btn-confirmer-hub" type="button">Confirmer le dépôt</button>
+      <div class="liste-hubs-retour" role="radiogroup" aria-label="Hub de dépôt du retour">
+        ${hubsDisponibles.map((hub) => `
+          <button class="choix-hub-retour" type="button" data-hub-retour="${hub.id_hub}" aria-pressed="${hub.id_hub === idHubSelectionne}">
+            <span class="choix-hub-retour-texte">
+              <strong>${escapeHtml(hub.nom)}</strong>
+              <small>${escapeHtml(hub.adresse || "Adresse non renseignée")}</small>
+            </span>
+            <span class="choix-hub-retour-coche" aria-hidden="true">✓</span>
+          </button>`).join("")}
+      </div>
+      <div class="actions-choix-hub-retour">
+        <button class="btn btn-discret" id="btn-annuler-hub-retour" type="button">Annuler</button>
+        <button class="btn btn-primaire" id="btn-confirmer-hub" type="button">Confirmer ce hub</button>
+      </div>
     `, (voile) => {
-      const select = voile.querySelector("#select-hub-depot");
-      const elAdresse = voile.querySelector("#adresse-hub-depot");
-      function afficherAdresse() {
-        const hub = hubsDisponibles.find((h) => h.id_hub === select.value);
-        elAdresse.innerHTML = hub?.adresse ? `${iconePin()} ${escapeHtml(hub.adresse)}` : "";
-      }
-      select.addEventListener("change", afficherAdresse);
-      afficherAdresse(); // affichée dès l'ouverture, pas seulement au changement
+      voile.classList.add("voile-choix-hub-retour");
+      voile.addEventListener("fermeturevoile", () => terminer(null), { once: true });
+      voile.querySelectorAll("[data-hub-retour]").forEach((bouton) => {
+        bouton.addEventListener("click", () => {
+          idHubSelectionne = bouton.dataset.hubRetour;
+          voile.querySelectorAll("[data-hub-retour]").forEach((option) => {
+            option.setAttribute("aria-pressed", String(option === bouton));
+          });
+        });
+      });
+      voile.querySelector("#btn-annuler-hub-retour").addEventListener("click", () => {
+        terminer(null);
+        fermerVoile();
+      });
 
       voile.querySelector("#btn-confirmer-hub").addEventListener("click", () => {
-        const idHub = select.value;
+        terminer({ idHub: idHubSelectionne, motif: null });
         fermerVoile();
-        resolve({ idHub, motif: null });
       });
     });
   });
