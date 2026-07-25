@@ -16,7 +16,7 @@ export async function monter(conteneur, actionsContainer, profil) {
     conteneur.innerHTML = `
       <div class="bloc-tableau">
         <table class="donnees">
-          <thead><tr><th>Colis</th><th>Destinataire</th><th>Statut annoncé</th><th>Motif</th><th></th></tr></thead>
+          <thead><tr><th>Colis</th><th>Destinataire</th><th>Statut annoncé</th><th>Motif de livraison</th><th>Choix du hub</th><th></th></tr></thead>
           <tbody>
             ${colis.map((c) => {
               const alerte = c.alerte_zone || c.commandes?.alerte_zone_expediteur;
@@ -29,10 +29,11 @@ export async function monter(conteneur, actionsContainer, profil) {
                 </td>
                 <td>${tampon(c.statut)}</td>
                 <td>${libelleMotif(c.motif_retour)}</td>
+                <td>${escapeHtml(c.motif_choix_hub_retour || "—")}</td>
                 <td class="cellule-actions">
                   ${c.statut === "DEPOT_DEMANDE"
                     ? `<button class="btn btn-primaire btn-petit" data-valider-depot="${c.id_colis}">Valider le dépôt</button>`
-                    : `<button class="btn btn-primaire btn-petit" data-valider-retour-recu="${c.id_colis}">Confirmer la réception</button>`}
+                    : `<button class="btn btn-primaire btn-petit" data-valider-retour-recu="${c.id_colis}">Confirmer le hub et réceptionner</button>`}
                 </td>
               </tr>`;
             }).join("")}

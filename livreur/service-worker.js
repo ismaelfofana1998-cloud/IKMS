@@ -1,4 +1,4 @@
-const CACHE = "ikms-livreur-v5";
+const CACHE = "ikms-livreur-v6";
 const SHELL = [
   "./index.html",
   "./app.html",

@@ -50,6 +50,14 @@ export function urlSuivi(token) {
   return `${base}${window.location.pathname.replace(/[^/]*$/, "")}suivi.html?token=${token}`;
 }
 
+export function urlWhatsApp(telephone, texte, url) {
+  const chiffres = String(telephone || "").replace(/\D/g, "");
+  const numeroInternational = chiffres.startsWith("225")
+    ? chiffres
+    : `225${chiffres}`;
+  return `https://wa.me/${numeroInternational}?text=${encodeURIComponent(`${texte} ${url}`)}`;
+}
+
 // Partage direct (feuille de partage native : WhatsApp, SMS, etc.) plutôt
 // qu'un simple copier-coller — beaucoup plus rapide sur mobile. On retombe
 // sur le presse-papiers uniquement si le navigateur ne sait pas partager

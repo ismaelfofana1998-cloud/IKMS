@@ -8,6 +8,7 @@ import {
   listerColisDisponiblesPourLot,
   listerLots,
   listerColisDuLot,
+  listerColisDesLots,
   creerLot,
   assignerLot,
   validerRecuperationColis,
@@ -31,7 +32,6 @@ export const titre = "Opérations";
 export const sousTitre = "";
 
 const FILTRES = [
-  ["TOUT", "Tout"],
   ["RAMASSAGE", "Ramassages"],
   ["RECEPTION", "Réceptions"],
   ["LOT", "Mise en lot"],
@@ -41,39 +41,33 @@ const FILTRES = [
 
 export async function monter(conteneur, actionsContainer, profil) {
   const idHubAgent = profil?.role === "agent" ? profil.id_hub_affecte : null;
-  let filtreActif = "TOUT";
+  let filtreActif = "RAMASSAGE";
   let livreurs = [];
   let nettoyageCreation = null;
   let chargement = false;
-  let sectionsInitialisees = false;
-  const sectionsOuvertes = new Set();
+  let filtreInitialise = false;
 
   actionsContainer.innerHTML = `
     <button class="btn btn-discret" id="btn-actualiser-operations">Actualiser</button>
     <button class="btn btn-primaire" id="btn-nouvelle-commande">+ Nouvelle commande</button>`;
 
-  const visible = (section) => filtreActif === "TOUT" || filtreActif === section;
+  const visible = (section) => filtreActif === section;
 
   const nomLivreur = (id) =>
     livreurs.find((livreur) => livreur.id_utilisateur === id)?.nom || "—";
 
-  const estOuverte = (section) => sectionsOuvertes.has(section);
-
-  function enteteSection(section, libelle, nombre) {
+  function enteteSection(libelle, nombre) {
     return `
-      <summary class="tableau-titre entete-etape-operation">
+      <div class="tableau-titre entete-etape-operation">
         <span>${libelle} <small>${nombre}</small></span>
-        <svg class="chevron-etape-operation" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
-          <path d="m6 9 6 6 6-6"/>
-        </svg>
-      </summary>`;
+      </div>`;
   }
 
   function sectionRamassages(commandes) {
     if (!visible("RAMASSAGE")) return "";
     return `
-      <details class="bloc-tableau etape-operation" data-section-operation="RAMASSAGE" ${estOuverte("RAMASSAGE") ? "open" : ""}>
-        ${enteteSection("RAMASSAGE", "Ramassages", commandes.length)}
+      <section class="bloc-tableau etape-operation" data-section-operation="RAMASSAGE">
+        ${enteteSection("Ramassages", commandes.length)}
         ${commandes.length ? `
           <div class="barre-assignation-groupee">
             <select id="select-livreur-ramassages">
@@ -112,14 +106,14 @@ export async function monter(conteneur, actionsContainer, profil) {
               </tbody>
             </table>
           </div>` : `<div class="etat-vide-tableau">Aucun ramassage en attente.</div>`}
-      </details>`;
+      </section>`;
   }
 
   function sectionReceptions(colis) {
     if (!visible("RECEPTION")) return "";
     return `
-      <details class="bloc-tableau etape-operation" data-section-operation="RECEPTION" ${estOuverte("RECEPTION") ? "open" : ""}>
-        ${enteteSection("RECEPTION", "Réceptions au hub", colis.length)}
+      <section class="bloc-tableau etape-operation" data-section-operation="RECEPTION">
+        ${enteteSection("Réceptions au hub", colis.length)}
         ${colis.length ? `
           <div class="tableau-defilant">
             <table class="donnees">
@@ -131,26 +125,32 @@ export async function monter(conteneur, actionsContainer, profil) {
                     <tr${alerte ? ' class="ligne-alerte-zone"' : ""}>
                       <td class="identifiant-operation identifiant-metier">${escapeHtml(element.id_colis)}</td>
                       <td class="identifiant-operation identifiant-metier">${escapeHtml(element.id_commande)}</td>
-                      <td>${escapeHtml(element.destinataire_nom)}<br>${alerteZone(alerte)}</td>
+                      <td>
+                        ${escapeHtml(element.destinataire_nom)}
+                        ${element.statut === "RETOUR_DEMANDE" && element.motif_choix_hub_retour
+                          ? `<small class="motif-hub-retour">Choix du hub : ${escapeHtml(element.motif_choix_hub_retour)}</small>`
+                          : ""}
+                        ${alerteZone(alerte)}
+                      </td>
                       <td>${tampon(element.statut)}</td>
                       <td class="cellule-actions">
                         ${element.statut === "DEPOT_DEMANDE"
                           ? `<button class="btn btn-primaire btn-petit" data-valider-depot="${escapeHtml(element.id_colis)}">Réceptionner le colis</button>`
-                          : `<button class="btn btn-primaire btn-petit" data-valider-retour="${escapeHtml(element.id_colis)}">Réceptionner le retour</button>`}
+                          : `<button class="btn btn-primaire btn-petit" data-valider-retour="${escapeHtml(element.id_colis)}">Confirmer le hub et réceptionner</button>`}
                       </td>
                     </tr>`;
                 }).join("")}
               </tbody>
             </table>
           </div>` : `<div class="etat-vide-tableau">Aucune réception en attente.</div>`}
-      </details>`;
+      </section>`;
   }
 
   function sectionMiseEnLot(colis) {
     if (!visible("LOT")) return "";
     return `
-      <details class="bloc-tableau etape-operation" data-section-operation="LOT" ${estOuverte("LOT") ? "open" : ""}>
-        ${enteteSection("LOT", "Colis à mettre en lot", colis.length)}
+      <section class="bloc-tableau etape-operation" data-section-operation="LOT">
+        ${enteteSection("Colis à mettre en lot", colis.length)}
         ${colis.length ? `
           <div class="barre-selection-operation">
             <label><input type="checkbox" id="case-tous-colis-lot"> Tout sélectionner</label>
@@ -172,7 +172,7 @@ export async function monter(conteneur, actionsContainer, profil) {
               </tbody>
             </table>
           </div>` : `<div class="etat-vide-tableau">Aucun colis disponible pour un lot.</div>`}
-      </details>`;
+      </section>`;
   }
 
   function sectionLots(lots, section) {
@@ -182,9 +182,73 @@ export async function monter(conteneur, actionsContainer, profil) {
     );
     const titreSection = section === "LIVRAISON" ? "Livraisons en cours" : "Lots et départs du hub";
     const lotsAAssigner = lotsAffiches.filter((lot) => !lot.id_livreur);
+    if (section === "DEPART") {
+      return `
+        <section class="etape-operation" data-section-operation="DEPART">
+          <div class="bloc-tableau">
+            ${enteteSection(titreSection, lotsAffiches.length)}
+            ${lotsAAssigner.length ? `
+              <div class="barre-assignation-groupee">
+                <select id="select-livreur-lots">
+                  <option value="">Assigner les lots sélectionnés à…</option>
+                  ${livreurs.map((livreur) => `<option value="${livreur.id_utilisateur}">${escapeHtml(livreur.nom)}</option>`).join("")}
+                </select>
+                <button class="btn btn-primaire btn-petit" id="btn-assigner-lots" disabled>Assigner</button>
+                <span id="compteur-lots" class="compteur-selection"></span>
+              </div>` : ""}
+          </div>
+          ${lotsAffiches.length ? `
+            <div class="liste-lots-depart">
+              ${lotsAffiches.map((lot) => `
+                <article class="bloc-tableau lot-depart-operation">
+                  <div class="entete-lot-depart">
+                    <div class="lot-depart-identite">
+                      ${!lot.id_livreur
+                        ? `<input type="checkbox" class="case-operation-lot" value="${escapeHtml(lot.id_lot)}" aria-label="Sélectionner ${escapeHtml(lot.id_lot)}">`
+                        : ""}
+                      <strong class="identifiant-operation identifiant-metier">${escapeHtml(lot.id_lot)}</strong>
+                      <span>${lot.colis?.length || lot.nb_colis || 0} colis</span>
+                    </div>
+                    <div class="lot-depart-meta">
+                      <span>${escapeHtml(nomLivreur(lot.id_livreur))}</span>
+                      ${tampon(lot.statut || "PREPARE")}
+                      <button class="btn btn-${lot.id_livreur ? "discret" : "primaire"} btn-petit" data-assigner-lot="${escapeHtml(lot.id_lot)}">
+                        ${lot.id_livreur ? "Réassigner" : "Assigner la livraison"}
+                      </button>
+                    </div>
+                  </div>
+                  ${lot.note ? `<p class="note-lot-depart">${escapeHtml(lot.note)}</p>` : ""}
+                  <div class="tableau-defilant">
+                    <table class="donnees tableau-colis-depart">
+                      <thead><tr><th>Colis</th><th>Destinataire</th><th>Zone</th><th>Statut</th><th></th></tr></thead>
+                      <tbody>
+                        ${(lot.colis || []).map((element) => `
+                          <tr>
+                            <td class="identifiant-operation identifiant-metier">${escapeHtml(element.id_colis)}</td>
+                            <td>
+                              ${escapeHtml(element.destinataire_nom)}
+                              <small>${escapeHtml(element.destinataire_adresse || "—")}</small>
+                              ${alerteZone(element.alerte_zone)}
+                            </td>
+                            <td>${escapeHtml(element.code_zone || "—")}</td>
+                            <td>${tampon(element.statut)}</td>
+                            <td class="cellule-actions">
+                              ${element.statut === "RECUP_DEMANDEE"
+                                ? `<button class="btn btn-primaire btn-petit" data-valider-depart-colis="${escapeHtml(element.id_colis)}">Confirmer le départ</button>`
+                                : `<span class="action-indisponible">${lot.id_livreur ? "En attente du livreur" : "À assigner"}</span>`}
+                            </td>
+                          </tr>`).join("")}
+                      </tbody>
+                    </table>
+                  </div>
+                </article>`).join("")}
+            </div>` : `<div class="etat-vide-tableau">Aucun lot en attente de départ.</div>`}
+        </section>`;
+    }
+
     return `
-      <details class="bloc-tableau etape-operation" data-section-operation="${section}" ${estOuverte(section) ? "open" : ""}>
-        ${enteteSection(section, titreSection, lotsAffiches.length)}
+      <section class="bloc-tableau etape-operation" data-section-operation="${section}">
+        ${enteteSection(titreSection, lotsAffiches.length)}
         ${section === "DEPART" && lotsAAssigner.length ? `
           <div class="barre-assignation-groupee">
             <select id="select-livreur-lots">
@@ -220,7 +284,7 @@ export async function monter(conteneur, actionsContainer, profil) {
               </tbody>
             </table>
           </div>` : `<div class="etat-vide-tableau">${section === "LIVRAISON" ? "Aucune livraison en cours." : "Aucun lot en attente de départ."}</div>`}
-      </details>`;
+      </section>`;
   }
 
   function rendre(donnees) {
@@ -232,19 +296,16 @@ export async function monter(conteneur, actionsContainer, profil) {
       DEPART: lotsActifs.filter((lot) => lot.statut !== "EN_TOURNEE").length,
       LIVRAISON: lotsActifs.filter((lot) => lot.statut === "EN_TOURNEE").length
     };
-    compteurs.TOUT = Object.values(compteurs).reduce((total, valeur) => total + valeur, 0);
-
-    if (!sectionsInitialisees) {
-      const premiereSection = ["RAMASSAGE", "RECEPTION", "LOT", "DEPART", "LIVRAISON"]
+    if (!filtreInitialise) {
+      filtreActif = ["RAMASSAGE", "RECEPTION", "LOT", "DEPART", "LIVRAISON"]
         .find((section) => compteurs[section] > 0) || "RAMASSAGE";
-      sectionsOuvertes.add(filtreActif === "TOUT" ? premiereSection : filtreActif);
-      sectionsInitialisees = true;
+      filtreInitialise = true;
     }
 
     conteneur.innerHTML = `
       <div class="filtres-operations" role="tablist" aria-label="Étapes opérationnelles">
         ${FILTRES.map(([id, libelle]) => `
-          <button class="filtre-operation" data-filtre-operation="${id}" aria-current="${filtreActif === id}">
+          <button class="filtre-operation" role="tab" data-filtre-operation="${id}" aria-selected="${filtreActif === id}" aria-current="${filtreActif === id}">
             <span>${libelle}</span><strong>${compteurs[id]}</strong>
           </button>`).join("")}
       </div>
@@ -271,8 +332,16 @@ export async function monter(conteneur, actionsContainer, profil) {
         listerLots(idHubAgent),
         listerLivreursActifs()
       ]);
+      const colisLots = await listerColisDesLots(idHubAgent);
+      const colisParLot = colisLots.reduce((groupes, colis) => {
+        const existants = groupes.get(colis.id_lot) || [];
+        existants.push(colis);
+        groupes.set(colis.id_lot, existants);
+        return groupes;
+      }, new Map());
+      const lotsAvecColis = lots.map((lot) => ({ ...lot, colis: colisParLot.get(lot.id_lot) || [] }));
       livreurs = listeLivreurs;
-      rendre({ commandes, receptions, disponibles, lots });
+      rendre({ commandes, receptions, disponibles, lots: lotsAvecColis });
     } finally {
       chargement = false;
       conteneur.removeAttribute("aria-busy");
@@ -371,7 +440,7 @@ export async function monter(conteneur, actionsContainer, profil) {
       <div id="contenu-lot-operation"><div class="etat-vide-tableau">Chargement…</div></div>
       <div class="actions-bas"><button class="btn btn-discret" id="fermer-lot-operation">Fermer</button></div>
     `, async (boite) => {
-      boite.closest(".boite-modale")?.classList.add("boite-modale-large");
+      boite.closest(".boite-modale")?.classList.add("boite-modale-plein-ecran");
       boite.querySelector("#fermer-lot-operation").addEventListener("click", fermerModale);
       await rendreColis(boite);
     });
@@ -403,18 +472,9 @@ export async function monter(conteneur, actionsContainer, profil) {
   }
 
   function brancherInteractions(donnees) {
-    conteneur.querySelectorAll("details[data-section-operation]").forEach((rubrique) => {
-      rubrique.addEventListener("toggle", () => {
-        const section = rubrique.dataset.sectionOperation;
-        if (rubrique.open) sectionsOuvertes.add(section);
-        else sectionsOuvertes.delete(section);
-      });
-    });
-
     conteneur.querySelectorAll("[data-filtre-operation]").forEach((bouton) => {
       bouton.addEventListener("click", () => {
         filtreActif = bouton.dataset.filtreOperation;
-        if (filtreActif !== "TOUT") sectionsOuvertes.add(filtreActif);
         rendre(donnees);
       });
     });
@@ -455,6 +515,19 @@ export async function monter(conteneur, actionsContainer, profil) {
     });
     conteneur.querySelectorAll("[data-voir-lot]").forEach((bouton) => {
       bouton.addEventListener("click", () => voirLot(bouton.dataset.voirLot));
+    });
+    conteneur.querySelectorAll("[data-valider-depart-colis]").forEach((bouton) => {
+      bouton.addEventListener("click", async () => {
+        bouton.disabled = true;
+        const resultat = await validerRecuperationColis(bouton.dataset.validerDepartColis);
+        if (resultat.ok) {
+          afficherFlash("Départ du colis confirmé");
+          rafraichir();
+        } else {
+          afficherFlash(resultat.message, true);
+          bouton.disabled = false;
+        }
+      });
     });
 
     conteneur.querySelectorAll("[data-valider-depot]").forEach((bouton) => {
