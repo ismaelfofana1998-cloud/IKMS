@@ -318,28 +318,45 @@ test("les bandeaux partagent le brun public et l'application iPhone remplit les 
 });
 
 test("la gestion des zones reste exploitable sans matrice de paires", async () => {
-  const [panneauZones, repository, styles, migration] = await Promise.all([
+  const [panneauZones, repository, styles, migration, administration] = await Promise.all([
     readFile(join(root, "centrale/assets/js/panels/zones.js"), "utf8"),
     readFile(join(root, "centrale/assets/js/repository.js"), "utf8"),
     readFile(join(root, "centrale/assets/css/centrale.css"), "utf8"),
-    readFile(join(root, "supabase/migrations/60_groupes_tarifaires.sql"), "utf8")
+    readFile(join(root, "supabase/migrations/60_groupes_tarifaires.sql"), "utf8"),
+    readFile(join(root, "supabase/migrations/61_administration_zones_groupes.sql"), "utf8")
   ]);
 
   assert.match(panneauZones, />Zones<\/button>/);
   assert.match(panneauZones, />Tarification<\/button>/);
   assert.match(panneauZones, />Exceptions<\/button>/);
   assert.match(panneauZones, /id="recherche-zones"/);
-  assert.match(panneauZones, /Tarif dans cette même zone/);
+  assert.match(panneauZones, /Tarif local : cette zone → cette même zone/);
+  assert.match(panneauZones, /Deux zones d’un même groupe/);
+  assert.match(panneauZones, /Deux groupes différents/);
+  assert.match(panneauZones, /\["admin", "super_admin"\]\.includes\(profil\.role\)/);
+  assert.match(panneauZones, /data-supprimer-zone/);
+  assert.match(panneauZones, /data-supprimer-groupe/);
   assert.doesNotMatch(panneauZones, /ouvrirTarifsNouvelleZone|Appliquer à toutes|Enregistrer tous les tarifs/);
   assert.match(repository, /export async function listerGroupesTarifaires/);
   assert.match(repository, /export async function enregistrerTarifGroupes/);
+  assert.match(repository, /rpc_modifier_zone_tarification/);
+  assert.match(repository, /rpc_supprimer_zone_tarification/);
+  assert.match(repository, /rpc_modifier_groupe_tarifaire/);
+  assert.match(repository, /rpc_supprimer_groupe_tarifaire/);
   assert.match(styles, /\.grille-configuration-tarifs/);
+  assert.match(styles, /\.logique-tarification/);
   assert.match(styles, /\.recherche-zones-tarifs/);
   assert.match(migration, /create table if not exists public\.groupes_tarifaires/);
   assert.match(migration, /create table if not exists public\.tarifs_groupes/);
   assert.match(migration, /tarif_intra_zone/);
   assert.match(migration, /create or replace function public\.tarif_zone_zone/);
   assert.match(migration, /zones_tarifs_paires[\s\S]*?tarif_intra_zone[\s\S]*?tarifs_groupes/);
+  assert.match(administration, /create or replace function public\.est_admin_effectif/);
+  assert.match(administration, /Action réservée aux administrateurs/);
+  assert.match(administration, /create or replace function public\.rpc_modifier_zone_tarification/);
+  assert.match(administration, /create or replace function public\.rpc_supprimer_zone_tarification/);
+  assert.match(administration, /create or replace function public\.rpc_modifier_groupe_tarifaire/);
+  assert.match(administration, /create or replace function public\.rpc_supprimer_groupe_tarifaire/);
 });
 
 test("les opérations remplacent les écrans fragmentés sans changer les RPC métier", async () => {

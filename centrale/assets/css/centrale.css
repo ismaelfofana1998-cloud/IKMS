@@ -314,6 +314,26 @@ table.donnees tr:hover td { background: #FAF6F3; }
   display: grid;
   gap: 14px;
 }
+.logique-tarification {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.logique-tarification span {
+  padding: 10px 12px;
+  border: 1px solid var(--ligne);
+  border-radius: var(--r-md);
+  color: var(--ink-soft);
+  background: var(--creme);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.logique-tarification strong { display: block; color: var(--ink); }
+
+@media (max-width: 760px) {
+  .logique-tarification { grid-template-columns: 1fr; }
+}
 
 /* --- Tampon de statut (signature visuelle) --------------------------------- */
 .tampon {

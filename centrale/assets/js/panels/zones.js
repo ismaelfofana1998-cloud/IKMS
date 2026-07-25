@@ -1,9 +1,10 @@
 import {
   listerZones,
   enregistrerZone,
-  desactiverZone,
+  supprimerZone,
   listerGroupesTarifaires,
   enregistrerGroupeTarifaire,
+  supprimerGroupeTarifaire,
   listerTarifsGroupes,
   enregistrerTarifGroupes,
   desactiverTarifGroupes,
@@ -35,6 +36,7 @@ const libelleGroupe = (groupe) => groupe?.nom || "Non classée";
 
 export async function monter(conteneur, actionsContainer, profil) {
   const hubs = await listerHubs();
+  const peutAdministrer = ["admin", "super_admin"].includes(profil.role);
   let ongletActif = "ZONES";
 
   const filtrerTable = (champ, selecteurLignes, idVide) => {
@@ -52,6 +54,11 @@ export async function monter(conteneur, actionsContainer, profil) {
   };
 
   function majActions({ zones, groupes }) {
+    if (!peutAdministrer) {
+      actionsContainer.innerHTML = "";
+      return;
+    }
+
     if (ongletActif === "ZONES") {
       actionsContainer.innerHTML = `<button class="btn btn-primaire" id="btn-nouvelle-zone">+ Nouvelle zone</button>`;
       actionsContainer.querySelector("#btn-nouvelle-zone").addEventListener("click", () => {
@@ -149,11 +156,13 @@ export async function monter(conteneur, actionsContainer, profil) {
       bouton.addEventListener("click", () => ouvrirFormulaireZone(zone, groupes));
     });
 
-    conteneur.querySelectorAll("[data-desactiver-zone]").forEach((bouton) => {
+    conteneur.querySelectorAll("[data-supprimer-zone]").forEach((bouton) => {
       bouton.addEventListener("click", async () => {
-        const resultat = await desactiverZone(Number(bouton.dataset.desactiverZone));
+        const zone = zones.find((element) => element.id === Number(bouton.dataset.supprimerZone));
+        if (!window.confirm(`Supprimer définitivement la zone ${zone?.code_zone || ""} ?`)) return;
+        const resultat = await supprimerZone(Number(bouton.dataset.supprimerZone));
         if (resultat.ok) {
-          afficherFlash("Zone désactivée");
+          afficherFlash(resultat.statut === "ARCHIVEE" ? "Zone archivée pour préserver l’historique" : "Zone supprimée");
           rafraichir();
         } else {
           afficherFlash(resultat.message, true);
@@ -164,6 +173,20 @@ export async function monter(conteneur, actionsContainer, profil) {
     conteneur.querySelectorAll("[data-modifier-groupe]").forEach((bouton) => {
       const groupe = groupes.find((element) => element.id_groupe === bouton.dataset.modifierGroupe);
       bouton.addEventListener("click", () => ouvrirFormulaireGroupe(groupe));
+    });
+
+    conteneur.querySelectorAll("[data-supprimer-groupe]").forEach((bouton) => {
+      bouton.addEventListener("click", async () => {
+        const groupe = groupes.find((element) => element.id_groupe === bouton.dataset.supprimerGroupe);
+        if (!window.confirm(`Supprimer définitivement le groupe ${groupe?.nom || ""} ?`)) return;
+        const resultat = await supprimerGroupeTarifaire(bouton.dataset.supprimerGroupe);
+        if (resultat.ok) {
+          afficherFlash("Groupe supprimé");
+          rafraichir();
+        } else {
+          afficherFlash(resultat.message, true);
+        }
+      });
     });
 
     conteneur.querySelectorAll("[data-modifier-tarif-groupe]").forEach((bouton) => {
@@ -210,7 +233,7 @@ export async function monter(conteneur, actionsContainer, profil) {
         </div>
         ${zones.length ? `
           <table class="donnees">
-            <thead><tr><th>Zone</th><th>Groupe</th><th>Dans la même zone</th><th>Hub</th><th></th></tr></thead>
+            <thead><tr><th>Zone</th><th>Groupe</th><th>Même zone uniquement</th><th>Hub</th><th></th></tr></thead>
             <tbody id="corps-zones">
               ${zones.map((zone) => {
                 const groupe = groupeParId.get(zone.id_groupe_tarifaire);
@@ -236,10 +259,10 @@ export async function monter(conteneur, actionsContainer, profil) {
                         : "—"
                     }</td>
                     <td>${escapeHtml(hubs.find((hub) => hub.id_hub === zone.id_hub)?.nom || "—")}</td>
-                    <td class="cellule-actions">
+                    <td class="cellule-actions">${peutAdministrer ? `
                       <button class="btn btn-discret btn-petit" data-modifier-zone="${zone.id}">Modifier</button>
-                      <button class="btn btn-alerte btn-petit" data-desactiver-zone="${zone.id}">Désactiver</button>
-                    </td>
+                      <button class="btn btn-alerte btn-petit" data-supprimer-zone="${zone.id}">Supprimer</button>
+                    ` : ""}</td>
                   </tr>`;
               }).join("")}
             </tbody>
@@ -252,6 +275,11 @@ export async function monter(conteneur, actionsContainer, profil) {
 
   function rendreTarification(groupes, tarifs, groupeParId, zones) {
     return `
+      <div class="logique-tarification">
+        <span><strong>Zone → même zone</strong> : tarif local de la fiche zone</span>
+        <span><strong>Deux zones d’un même groupe</strong> : tarif du groupe vers lui-même</span>
+        <span><strong>Deux groupes différents</strong> : un seul tarif couvre toutes leurs zones</span>
+      </div>
       <div class="grille-configuration-tarifs">
         <div class="bloc-tableau">
           <div class="tableau-titre">${groupes.length} groupe${groupes.length > 1 ? "s" : ""}</div>
@@ -266,9 +294,10 @@ export async function monter(conteneur, actionsContainer, profil) {
                       <span class="code-zone-secondaire">${escapeHtml(groupe.code)}</span>
                     </td>
                     <td>${zones.filter((zone) => zone.id_groupe_tarifaire === groupe.id_groupe).length}</td>
-                    <td class="cellule-actions">
+                    <td class="cellule-actions">${peutAdministrer ? `
                       <button class="btn btn-discret btn-petit" data-modifier-groupe="${groupe.id_groupe}">Modifier</button>
-                    </td>
+                      <button class="btn btn-alerte btn-petit" data-supprimer-groupe="${groupe.id_groupe}">Supprimer</button>
+                    ` : ""}</td>
                   </tr>
                 `).join("")}
               </tbody>
@@ -294,10 +323,10 @@ export async function monter(conteneur, actionsContainer, profil) {
                       <td>${escapeHtml(libelleGroupe(groupeA))}</td>
                       <td>${escapeHtml(libelleGroupe(groupeB))}</td>
                       <td class="cellule-donnee">${formaterFcfa(tarif.montant)} FCFA</td>
-                      <td class="cellule-actions">
+                      <td class="cellule-actions">${peutAdministrer ? `
                         <button class="btn btn-discret btn-petit" data-modifier-tarif-groupe="${tarif.id}">Modifier</button>
                         <button class="btn btn-alerte btn-petit" data-desactiver-tarif-groupe="${tarif.id}">Désactiver</button>
-                      </td>
+                      ` : ""}</td>
                     </tr>`;
                 }).join("")}
               </tbody>
@@ -329,10 +358,10 @@ export async function monter(conteneur, actionsContainer, profil) {
                     <td>${escapeHtml(libelleZone(zoneA))}<span class="code-zone-secondaire">${escapeHtml(tarif.zone_a)}</span></td>
                     <td>${escapeHtml(libelleZone(zoneB))}<span class="code-zone-secondaire">${escapeHtml(tarif.zone_b)}</span></td>
                     <td class="cellule-donnee">${formaterFcfa(tarif.montant)} FCFA</td>
-                    <td class="cellule-actions">
+                    <td class="cellule-actions">${peutAdministrer ? `
                       <button class="btn btn-discret btn-petit" data-modifier-exception="${tarif.id}">Modifier</button>
                       <button class="btn btn-alerte btn-petit" data-desactiver-exception="${tarif.id}">Désactiver</button>
-                    </td>
+                    ` : ""}</td>
                   </tr>`;
               }).join("")}
             </tbody>
@@ -348,7 +377,7 @@ export async function monter(conteneur, actionsContainer, profil) {
       <h2>${groupe ? "Modifier le groupe" : "Nouveau groupe tarifaire"}</h2>
       <p class="message-erreur" id="erreur-groupe"></p>
       <div class="formulaire">
-        <div class="champ"><label>Code</label><input id="g-code" value="${escapeHtml(groupe?.code || "")}" ${groupe ? "disabled" : ""} placeholder="CENTRE"></div>
+        <div class="champ"><label>Code</label><input id="g-code" value="${escapeHtml(groupe?.code || "")}" placeholder="CENTRE"></div>
         <div class="champ"><label>Nom</label><input id="g-nom" value="${escapeHtml(groupe?.nom || "")}" placeholder="Abidjan centre"></div>
       </div>
       <div class="actions-bas">
@@ -367,7 +396,11 @@ export async function monter(conteneur, actionsContainer, profil) {
           return;
         }
         evenement.currentTarget.disabled = true;
-        const resultat = await enregistrerGroupeTarifaire({ code, nom }, profil.id_entreprise);
+        const resultat = await enregistrerGroupeTarifaire({
+          idGroupe: groupe?.id_groupe,
+          code,
+          nom
+        }, profil.id_entreprise);
         if (resultat.ok) {
           afficherFlash("Groupe enregistré");
           fermerModale();
@@ -483,14 +516,14 @@ export async function monter(conteneur, actionsContainer, profil) {
       <h2>${zone ? "Modifier la zone" : "Nouvelle zone"}</h2>
       <p class="message-erreur" id="erreur-zone"></p>
       <div class="formulaire">
-        <div class="champ"><label>Code zone</label><input id="z-code" value="${escapeHtml(zone?.code_zone || "")}" ${zone ? "disabled" : ""} placeholder="YOP-NIANGON"></div>
+        <div class="champ"><label>Code zone</label><input id="z-code" value="${escapeHtml(zone?.code_zone || "")}" placeholder="YOP-NIANGON"></div>
         <div class="champ"><label>Commune</label><input id="z-nom-commune" value="${escapeHtml(zone?.nom_commune || "")}" placeholder="Yopougon"></div>
         <div class="champ"><label>Secteur</label><input id="z-secteur" value="${escapeHtml(zone?.secteur || "")}" placeholder="Niangon"></div>
         <div class="champ"><label>Groupe tarifaire</label><select id="z-groupe">
           <option value="">Choisir un groupe</option>
           ${groupes.map((groupe) => `<option value="${groupe.id_groupe}" ${groupe.id_groupe === zone?.id_groupe_tarifaire ? "selected" : ""}>${escapeHtml(groupe.nom)}</option>`).join("")}
         </select></div>
-        <div class="champ"><label>Tarif dans cette même zone (FCFA)</label><input id="z-tarif-intra" type="number" min="1" inputmode="numeric" value="${zone?.tarif_intra_zone || ""}" placeholder="1000"></div>
+        <div class="champ"><label>Tarif local : cette zone → cette même zone (FCFA)</label><input id="z-tarif-intra" type="number" min="1" inputmode="numeric" value="${zone?.tarif_intra_zone || ""}" placeholder="1000"></div>
         <div class="champ"><label>Mots-clés</label><input id="z-mots-cles" value="${escapeHtml((zone?.mots_cles || []).join(", "))}" placeholder="Niangon Nord, Niangon Sud"></div>
         <div class="champ">
           <label>Hub de ramassage</label>
@@ -525,6 +558,7 @@ export async function monter(conteneur, actionsContainer, profil) {
           .map((mot) => mot.trim())
           .filter(Boolean);
         const resultat = await enregistrerZone({
+          idZone: zone?.id,
           codeZone,
           secteur,
           nomCommune,
