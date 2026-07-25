@@ -747,25 +747,40 @@ export async function listerZones() {
 }
 
 export async function enregistrerZone(
-  { codeZone, secteur, nomCommune, motsCles, idHub, idGroupeTarifaire, tarifIntraZone },
+  { idZone, codeZone, secteur, nomCommune, motsCles, idHub, idGroupeTarifaire, tarifIntraZone },
   idEntreprise
 ) {
-  const { error } = await sb().from("zones_tarification").upsert(
-    {
-      id_entreprise: idEntreprise, code_zone: codeZone.toUpperCase(), secteur,
-      nom_commune: nomCommune, mots_cles: motsCles || [], id_hub: idHub || null,
-      id_groupe_tarifaire: idGroupeTarifaire || null,
-      tarif_intra_zone: tarifIntraZone || null,
-      actif: true
-    },
-    { onConflict: "id_entreprise,code_zone" }
-  );
+  const charge = {
+    code_zone: codeZone.toUpperCase(),
+    secteur,
+    nom_commune: nomCommune,
+    mots_cles: motsCles || [],
+    id_hub: idHub || null,
+    id_groupe_tarifaire: idGroupeTarifaire || null,
+    tarif_intra_zone: tarifIntraZone || null
+  };
+  const { error } = idZone
+    ? await sb().rpc("rpc_modifier_zone_tarification", {
+        p_id_zone: idZone,
+        p_code_zone: charge.code_zone,
+        p_secteur: charge.secteur,
+        p_nom_commune: charge.nom_commune,
+        p_mots_cles: charge.mots_cles,
+        p_id_hub: charge.id_hub,
+        p_id_groupe_tarifaire: charge.id_groupe_tarifaire,
+        p_tarif_intra_zone: charge.tarif_intra_zone
+      })
+    : await sb().from("zones_tarification").insert({
+        id_entreprise: idEntreprise,
+        ...charge,
+        actif: true
+      });
   return { ok: !error, message: error?.message };
 }
 
-export async function desactiverZone(id) {
-  const { error } = await sb().from("zones_tarification").update({ actif: false }).eq("id", id);
-  return { ok: !error, message: error?.message };
+export async function supprimerZone(id) {
+  const { data, error } = await sb().rpc("rpc_supprimer_zone_tarification", { p_id_zone: id });
+  return { ok: !error, statut: data, message: error?.message };
 }
 
 export async function listerGroupesTarifaires() {
@@ -777,24 +792,29 @@ export async function listerGroupesTarifaires() {
   return data || [];
 }
 
-export async function enregistrerGroupeTarifaire({ code, nom }, idEntreprise) {
-  const { error } = await sb().from("groupes_tarifaires").upsert(
-    {
-      id_entreprise: idEntreprise,
-      code: code.trim().toUpperCase(),
-      nom: nom.trim(),
-      actif: true
-    },
-    { onConflict: "id_entreprise,code" }
-  );
+export async function enregistrerGroupeTarifaire({ idGroupe, code, nom }, idEntreprise) {
+  const charge = {
+    code: code.trim().toUpperCase(),
+    nom: nom.trim()
+  };
+  const { error } = idGroupe
+    ? await sb().rpc("rpc_modifier_groupe_tarifaire", {
+        p_id_groupe: idGroupe,
+        p_code: charge.code,
+        p_nom: charge.nom
+      })
+    : await sb().from("groupes_tarifaires").insert({
+        id_entreprise: idEntreprise,
+        ...charge,
+        actif: true
+      });
   return { ok: !error, message: error?.message };
 }
 
-export async function desactiverGroupeTarifaire(idGroupe) {
-  const { error } = await sb()
-    .from("groupes_tarifaires")
-    .update({ actif: false })
-    .eq("id_groupe", idGroupe);
+export async function supprimerGroupeTarifaire(idGroupe) {
+  const { error } = await sb().rpc("rpc_supprimer_groupe_tarifaire", {
+    p_id_groupe: idGroupe
+  });
   return { ok: !error, message: error?.message };
 }
 
