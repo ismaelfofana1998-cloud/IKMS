@@ -310,58 +310,9 @@ table.donnees tr:hover td { background: #FAF6F3; }
   font-size: 10.5px;
   font-weight: 600;
 }
-.outils-grille-tarifs {
+.grille-configuration-tarifs {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 10px;
-  margin: 14px 0 10px;
-}
-.ligne-montant-commun { display: flex; gap: 8px; }
-.ligne-montant-commun input { min-width: 0; flex: 1; }
-.ligne-montant-commun .btn { flex: 0 0 auto; white-space: nowrap; }
-.progression-tarifs {
-  grid-column: 1 / -1;
-  color: var(--ink-soft);
-  font-size: 12px;
-  font-weight: 700;
-}
-.grille-tarifs-zone {
-  max-height: min(52vh, 520px);
-  overflow-y: auto;
-  border: 1px solid var(--ligne);
-  border-radius: var(--r-md);
-}
-.ligne-tarif-zone {
-  min-height: 58px;
-  padding: 9px 12px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 130px;
-  align-items: center;
   gap: 14px;
-  border-bottom: 1px solid var(--ligne);
-}
-.ligne-tarif-zone:last-child { border-bottom: 0; }
-.ligne-tarif-zone strong,
-.ligne-tarif-zone small { display: block; }
-.ligne-tarif-zone strong { font-size: 13px; }
-.ligne-tarif-zone small { margin-top: 2px; color: var(--ink-soft); font-size: 10.5px; }
-.ligne-tarif-zone input {
-  width: 100%;
-  min-height: 38px;
-  padding: 0 10px;
-  border: 1px solid var(--ligne);
-  border-radius: 9px;
-  color: var(--ink);
-  background: var(--creme);
-  text-align: right;
-}
-.ligne-tarif-zone input:focus { border-color: var(--terracotta); outline: none; }
-
-@media (max-width: 620px) {
-  .outils-grille-tarifs { grid-template-columns: 1fr; }
-  .progression-tarifs { grid-column: auto; }
-  .ligne-montant-commun { align-items: stretch; flex-direction: column; }
-  .ligne-tarif-zone { grid-template-columns: minmax(0, 1fr) 104px; gap: 8px; }
 }
 
 /* --- Tampon de statut (signature visuelle) --------------------------------- */

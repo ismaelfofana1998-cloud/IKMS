@@ -2,9 +2,13 @@ import {
   listerZones,
   enregistrerZone,
   desactiverZone,
+  listerGroupesTarifaires,
+  enregistrerGroupeTarifaire,
+  listerTarifsGroupes,
+  enregistrerTarifGroupes,
+  desactiverTarifGroupes,
   listerTarifsPaires,
   enregistrerTarifPaire,
-  enregistrerTarifsPairesPourZone,
   desactiverTarifPaire,
   listerHubs
 } from "../repository.js";
@@ -27,107 +31,94 @@ const libelleZone = (zone) => {
     : secteur;
 };
 
+const libelleGroupe = (groupe) => groupe?.nom || "Non classée";
+
 export async function monter(conteneur, actionsContainer, profil) {
   const hubs = await listerHubs();
   let ongletActif = "ZONES";
 
-  function majActions() {
-    actionsContainer.innerHTML = ongletActif === "PARAMETRAGE"
-      ? `<button class="btn btn-primaire" id="btn-nouvelle-zone">+ Nouvelle zone</button>`
-      : `<button class="btn btn-primaire" id="btn-nouveau-tarif-paire">+ Tarif par paire</button>`;
+  const filtrerTable = (champ, selecteurLignes, idVide) => {
+    champ?.addEventListener("input", () => {
+      const terme = normaliserRecherche(champ.value);
+      const lignes = [...conteneur.querySelectorAll(selecteurLignes)];
+      let visibles = 0;
+      lignes.forEach((ligne) => {
+        ligne.hidden = !ligne.dataset.recherche.includes(terme);
+        if (!ligne.hidden) visibles += 1;
+      });
+      const vide = conteneur.querySelector(`#${idVide}`);
+      if (vide) vide.hidden = visibles !== 0;
+    });
+  };
 
-    actionsContainer.querySelector("#btn-nouvelle-zone")?.addEventListener("click", () => ouvrirFormulaireZone(null));
-    actionsContainer.querySelector("#btn-nouveau-tarif-paire")?.addEventListener("click", async () => {
-      ouvrirFormulairePaire(null, (await listerZones()).filter((zone) => zone.actif));
+  function majActions({ zones, groupes }) {
+    if (ongletActif === "ZONES") {
+      actionsContainer.innerHTML = `<button class="btn btn-primaire" id="btn-nouvelle-zone">+ Nouvelle zone</button>`;
+      actionsContainer.querySelector("#btn-nouvelle-zone").addEventListener("click", () => {
+        if (!groupes.length) {
+          ongletActif = "TARIFICATION";
+          afficherFlash("Créez d’abord un groupe tarifaire");
+          rafraichir();
+          return;
+        }
+        ouvrirFormulaireZone(null, groupes);
+      });
+      return;
+    }
+
+    if (ongletActif === "TARIFICATION") {
+      actionsContainer.innerHTML = `
+        <button class="btn btn-discret" id="btn-nouveau-groupe">+ Groupe</button>
+        <button class="btn btn-primaire" id="btn-nouveau-tarif-groupe">+ Tarif</button>
+      `;
+      actionsContainer.querySelector("#btn-nouveau-groupe").addEventListener("click", () => ouvrirFormulaireGroupe());
+      actionsContainer.querySelector("#btn-nouveau-tarif-groupe").addEventListener("click", () => {
+        if (!groupes.length) {
+          ouvrirFormulaireGroupe();
+          return;
+        }
+        ouvrirFormulaireTarifGroupe(null, groupes);
+      });
+      return;
+    }
+
+    actionsContainer.innerHTML = `<button class="btn btn-primaire" id="btn-nouvelle-exception">+ Exception</button>`;
+    actionsContainer.querySelector("#btn-nouvelle-exception").addEventListener("click", () => {
+      ouvrirFormulaireException(null, zones);
     });
   }
 
   async function rafraichir() {
-    const [toutesZones, tousTarifs] = await Promise.all([listerZones(), listerTarifsPaires()]);
+    const [toutesZones, tousGroupes, tousTarifsGroupes, toutesExceptions] = await Promise.all([
+      listerZones(),
+      listerGroupesTarifaires(),
+      listerTarifsGroupes(),
+      listerTarifsPaires()
+    ]);
     const zones = toutesZones.filter((zone) => zone.actif);
-    const paires = tousTarifs.filter((paire) => paire.actif);
+    const groupes = tousGroupes.filter((groupe) => groupe.actif);
+    const tarifsGroupes = tousTarifsGroupes.filter((tarif) => tarif.actif);
+    const exceptions = toutesExceptions.filter((tarif) => tarif.actif);
     const zoneParCode = new Map(zones.map((zone) => [zone.code_zone, zone]));
-    majActions();
+    const groupeParId = new Map(groupes.map((groupe) => [groupe.id_groupe, groupe]));
+    const exceptionLocaleParZone = new Map(
+      exceptions
+        .filter((tarif) => tarif.zone_a === tarif.zone_b)
+        .map((tarif) => [tarif.zone_a, tarif])
+    );
+
+    majActions({ zones, groupes });
 
     conteneur.innerHTML = `
       <div class="onglets-panneau">
         <button class="onglet-panneau" data-onglet="ZONES" aria-current="${ongletActif === "ZONES"}">Zones</button>
-        <button class="onglet-panneau" data-onglet="PARAMETRAGE" aria-current="${ongletActif === "PARAMETRAGE"}">Paramétrer Zones</button>
+        <button class="onglet-panneau" data-onglet="TARIFICATION" aria-current="${ongletActif === "TARIFICATION"}">Tarification</button>
+        <button class="onglet-panneau" data-onglet="EXCEPTIONS" aria-current="${ongletActif === "EXCEPTIONS"}">Exceptions</button>
       </div>
 
-      ${ongletActif === "ZONES" ? `
-        <div class="bloc-tableau">
-          <div class="tableau-titre titre-avec-recherche">
-            <span>Zones et tarifs par paire</span>
-            <input
-              id="recherche-zones-tarifs"
-              class="recherche-zones-tarifs"
-              type="search"
-              placeholder="Rechercher une zone"
-              autocomplete="off"
-            >
-          </div>
-          ${paires.length ? `
-            <table class="donnees">
-              <thead><tr><th>Zone A</th><th>Zone B</th><th>Tarif</th><th></th></tr></thead>
-              <tbody id="corps-tarifs-paires">
-                ${paires.map((paire) => {
-                  const zoneA = zoneParCode.get(paire.zone_a);
-                  const zoneB = zoneParCode.get(paire.zone_b);
-                  const recherche = normaliserRecherche([
-                    paire.zone_a,
-                    paire.zone_b,
-                    zoneA?.nom_commune,
-                    zoneA?.secteur,
-                    zoneB?.nom_commune,
-                    zoneB?.secteur
-                  ].join(" "));
-                  return `
-                    <tr data-recherche="${escapeHtml(recherche)}">
-                      <td>
-                        <strong>${escapeHtml(libelleZone(zoneA))}</strong>
-                        <span class="code-zone-secondaire">${escapeHtml(paire.zone_a)}</span>
-                      </td>
-                      <td>
-                        <strong>${escapeHtml(libelleZone(zoneB))}</strong>
-                        <span class="code-zone-secondaire">${escapeHtml(paire.zone_b)}</span>
-                      </td>
-                      <td class="cellule-donnee">${formaterFcfa(paire.montant)} FCFA</td>
-                      <td class="cellule-actions">
-                        <button class="btn btn-discret btn-petit" data-modifier-paire="${paire.id}">Modifier</button>
-                        <button class="btn btn-alerte btn-petit" data-desactiver-paire="${paire.id}">Désactiver</button>
-                      </td>
-                    </tr>`;
-                }).join("")}
-              </tbody>
-            </table>
-            <div class="etat-vide-tableau" id="aucun-resultat-zone" hidden>Aucune zone ne correspond à cette recherche.</div>
-          ` : `<div class="etat-vide-tableau">Aucun tarif par paire.</div>`}
-        </div>
-      ` : `
-        <div class="bloc-tableau">
-          <div class="tableau-titre">Zones</div>
-          ${zones.length ? `
-            <table class="donnees">
-              <thead><tr><th>Code</th><th>Secteur</th><th>Commune</th><th>Mots-clés</th><th>Hub</th><th></th></tr></thead>
-              <tbody>
-                ${zones.map((zone) => `
-                  <tr>
-                    <td class="cellule-donnee">${escapeHtml(zone.code_zone)}</td>
-                    <td class="cellule-donnee">${escapeHtml(zone.secteur || "—")}</td>
-                    <td>${escapeHtml(zone.nom_commune || "—")}</td>
-                    <td>${(zone.mots_cles || []).length ? escapeHtml(zone.mots_cles.join(", ")) : "—"}</td>
-                    <td>${escapeHtml(hubs.find((hub) => hub.id_hub === zone.id_hub)?.nom || "—")}</td>
-                    <td class="cellule-actions">
-                      <button class="btn btn-discret btn-petit" data-modifier="${zone.id}">Modifier</button>
-                      <button class="btn btn-alerte btn-petit" data-desactiver="${zone.id}">Désactiver</button>
-                    </td>
-                  </tr>`).join("")}
-              </tbody>
-            </table>
-          ` : `<div class="etat-vide-tableau">Aucune zone.</div>`}
-        </div>
-      `}
+      ${ongletActif === "ZONES" ? rendreZones(zones, groupeParId, exceptionLocaleParZone) : ""}
+      ${ongletActif === "TARIFICATION" ? rendreTarification(groupes, tarifsGroupes, groupeParId, zones) : ""}
+      ${ongletActif === "EXCEPTIONS" ? rendreExceptions(exceptions, zoneParCode) : ""}
     `;
 
     conteneur.querySelectorAll("[data-onglet]").forEach((bouton) => {
@@ -137,27 +128,30 @@ export async function monter(conteneur, actionsContainer, profil) {
       });
     });
 
-    const recherche = conteneur.querySelector("#recherche-zones-tarifs");
-    recherche?.addEventListener("input", () => {
-      const terme = normaliserRecherche(recherche.value);
-      const lignes = [...conteneur.querySelectorAll("#corps-tarifs-paires tr")];
-      let visibles = 0;
-      lignes.forEach((ligne) => {
-        ligne.hidden = !ligne.dataset.recherche.includes(terme);
-        if (!ligne.hidden) visibles += 1;
-      });
-      const vide = conteneur.querySelector("#aucun-resultat-zone");
-      if (vide) vide.hidden = visibles !== 0;
+    filtrerTable(
+      conteneur.querySelector("#recherche-zones"),
+      "#corps-zones tr",
+      "aucune-zone-recherche"
+    );
+    filtrerTable(
+      conteneur.querySelector("#recherche-tarifs-groupes"),
+      "#corps-tarifs-groupes tr",
+      "aucun-tarif-groupe-recherche"
+    );
+    filtrerTable(
+      conteneur.querySelector("#recherche-exceptions"),
+      "#corps-exceptions tr",
+      "aucune-exception-recherche"
+    );
+
+    conteneur.querySelectorAll("[data-modifier-zone]").forEach((bouton) => {
+      const zone = zones.find((element) => element.id === Number(bouton.dataset.modifierZone));
+      bouton.addEventListener("click", () => ouvrirFormulaireZone(zone, groupes));
     });
 
-    conteneur.querySelectorAll("[data-modifier]").forEach((bouton) => {
-      const zone = zones.find((element) => element.id === Number(bouton.dataset.modifier));
-      bouton.addEventListener("click", () => ouvrirFormulaireZone(zone));
-    });
-
-    conteneur.querySelectorAll("[data-desactiver]").forEach((bouton) => {
+    conteneur.querySelectorAll("[data-desactiver-zone]").forEach((bouton) => {
       bouton.addEventListener("click", async () => {
-        const resultat = await desactiverZone(Number(bouton.dataset.desactiver));
+        const resultat = await desactiverZone(Number(bouton.dataset.desactiverZone));
         if (resultat.ok) {
           afficherFlash("Zone désactivée");
           rafraichir();
@@ -167,14 +161,19 @@ export async function monter(conteneur, actionsContainer, profil) {
       });
     });
 
-    conteneur.querySelectorAll("[data-modifier-paire]").forEach((bouton) => {
-      const paire = paires.find((element) => element.id === Number(bouton.dataset.modifierPaire));
-      bouton.addEventListener("click", () => ouvrirFormulairePaire(paire, zones));
+    conteneur.querySelectorAll("[data-modifier-groupe]").forEach((bouton) => {
+      const groupe = groupes.find((element) => element.id_groupe === bouton.dataset.modifierGroupe);
+      bouton.addEventListener("click", () => ouvrirFormulaireGroupe(groupe));
     });
 
-    conteneur.querySelectorAll("[data-desactiver-paire]").forEach((bouton) => {
+    conteneur.querySelectorAll("[data-modifier-tarif-groupe]").forEach((bouton) => {
+      const tarif = tarifsGroupes.find((element) => element.id === Number(bouton.dataset.modifierTarifGroupe));
+      bouton.addEventListener("click", () => ouvrirFormulaireTarifGroupe(tarif, groupes));
+    });
+
+    conteneur.querySelectorAll("[data-desactiver-tarif-groupe]").forEach((bouton) => {
       bouton.addEventListener("click", async () => {
-        const resultat = await desactiverTarifPaire(Number(bouton.dataset.desactiverPaire));
+        const resultat = await desactiverTarifGroupes(Number(bouton.dataset.desactiverTarifGroupe));
         if (resultat.ok) {
           afficherFlash("Tarif désactivé");
           rafraichir();
@@ -183,40 +182,236 @@ export async function monter(conteneur, actionsContainer, profil) {
         }
       });
     });
+
+    conteneur.querySelectorAll("[data-modifier-exception]").forEach((bouton) => {
+      const tarif = exceptions.find((element) => element.id === Number(bouton.dataset.modifierException));
+      bouton.addEventListener("click", () => ouvrirFormulaireException(tarif, zones));
+    });
+
+    conteneur.querySelectorAll("[data-desactiver-exception]").forEach((bouton) => {
+      bouton.addEventListener("click", async () => {
+        const resultat = await desactiverTarifPaire(Number(bouton.dataset.desactiverException));
+        if (resultat.ok) {
+          afficherFlash("Exception désactivée");
+          rafraichir();
+        } else {
+          afficherFlash(resultat.message, true);
+        }
+      });
+    });
   }
 
-  function ouvrirFormulairePaire(paire, zones) {
-    const optionsZones = (selection) => zones.map((zone) =>
-      `<option value="${zone.code_zone}" ${zone.code_zone === selection ? "selected" : ""}>${escapeHtml(libelleZone(zone))}</option>`
-    ).join("");
+  function rendreZones(zones, groupeParId, exceptionLocaleParZone) {
+    return `
+      <div class="bloc-tableau">
+        <div class="tableau-titre titre-avec-recherche">
+          <span>${zones.length} zone${zones.length > 1 ? "s" : ""}</span>
+          <input id="recherche-zones" class="recherche-zones-tarifs" type="search" placeholder="Rechercher une zone" autocomplete="off">
+        </div>
+        ${zones.length ? `
+          <table class="donnees">
+            <thead><tr><th>Zone</th><th>Groupe</th><th>Dans la même zone</th><th>Hub</th><th></th></tr></thead>
+            <tbody id="corps-zones">
+              ${zones.map((zone) => {
+                const groupe = groupeParId.get(zone.id_groupe_tarifaire);
+                const exceptionLocale = exceptionLocaleParZone.get(zone.code_zone);
+                const recherche = normaliserRecherche([
+                  zone.code_zone,
+                  zone.nom_commune,
+                  zone.secteur,
+                  groupe?.nom,
+                  groupe?.code
+                ].join(" "));
+                return `
+                  <tr data-recherche="${escapeHtml(recherche)}">
+                    <td>
+                      <strong>${escapeHtml(libelleZone(zone))}</strong>
+                      <span class="code-zone-secondaire">${escapeHtml(zone.code_zone)}</span>
+                    </td>
+                    <td>${escapeHtml(libelleGroupe(groupe))}</td>
+                    <td>${exceptionLocale
+                      ? `${formaterFcfa(exceptionLocale.montant)} FCFA <span class="code-zone-secondaire">Exception</span>`
+                      : zone.tarif_intra_zone
+                        ? `${formaterFcfa(zone.tarif_intra_zone)} FCFA`
+                        : "—"
+                    }</td>
+                    <td>${escapeHtml(hubs.find((hub) => hub.id_hub === zone.id_hub)?.nom || "—")}</td>
+                    <td class="cellule-actions">
+                      <button class="btn btn-discret btn-petit" data-modifier-zone="${zone.id}">Modifier</button>
+                      <button class="btn btn-alerte btn-petit" data-desactiver-zone="${zone.id}">Désactiver</button>
+                    </td>
+                  </tr>`;
+              }).join("")}
+            </tbody>
+          </table>
+          <div class="etat-vide-tableau" id="aucune-zone-recherche" hidden>Aucune zone trouvée.</div>
+        ` : `<div class="etat-vide-tableau">Aucune zone.</div>`}
+      </div>
+    `;
+  }
 
+  function rendreTarification(groupes, tarifs, groupeParId, zones) {
+    return `
+      <div class="grille-configuration-tarifs">
+        <div class="bloc-tableau">
+          <div class="tableau-titre">${groupes.length} groupe${groupes.length > 1 ? "s" : ""}</div>
+          ${groupes.length ? `
+            <table class="donnees">
+              <thead><tr><th>Groupe</th><th>Zones</th><th></th></tr></thead>
+              <tbody>
+                ${groupes.map((groupe) => `
+                  <tr>
+                    <td>
+                      <strong>${escapeHtml(groupe.nom)}</strong>
+                      <span class="code-zone-secondaire">${escapeHtml(groupe.code)}</span>
+                    </td>
+                    <td>${zones.filter((zone) => zone.id_groupe_tarifaire === groupe.id_groupe).length}</td>
+                    <td class="cellule-actions">
+                      <button class="btn btn-discret btn-petit" data-modifier-groupe="${groupe.id_groupe}">Modifier</button>
+                    </td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          ` : `<div class="etat-vide-tableau">Créez votre premier groupe tarifaire.</div>`}
+        </div>
+
+        <div class="bloc-tableau">
+          <div class="tableau-titre titre-avec-recherche">
+            <span>Tarifs entre groupes</span>
+            <input id="recherche-tarifs-groupes" class="recherche-zones-tarifs" type="search" placeholder="Rechercher un groupe" autocomplete="off">
+          </div>
+          ${tarifs.length ? `
+            <table class="donnees">
+              <thead><tr><th>Groupe A</th><th>Groupe B</th><th>Tarif</th><th></th></tr></thead>
+              <tbody id="corps-tarifs-groupes">
+                ${tarifs.map((tarif) => {
+                  const groupeA = groupeParId.get(tarif.groupe_a);
+                  const groupeB = groupeParId.get(tarif.groupe_b);
+                  const recherche = normaliserRecherche(`${groupeA?.nom} ${groupeA?.code} ${groupeB?.nom} ${groupeB?.code}`);
+                  return `
+                    <tr data-recherche="${escapeHtml(recherche)}">
+                      <td>${escapeHtml(libelleGroupe(groupeA))}</td>
+                      <td>${escapeHtml(libelleGroupe(groupeB))}</td>
+                      <td class="cellule-donnee">${formaterFcfa(tarif.montant)} FCFA</td>
+                      <td class="cellule-actions">
+                        <button class="btn btn-discret btn-petit" data-modifier-tarif-groupe="${tarif.id}">Modifier</button>
+                        <button class="btn btn-alerte btn-petit" data-desactiver-tarif-groupe="${tarif.id}">Désactiver</button>
+                      </td>
+                    </tr>`;
+                }).join("")}
+              </tbody>
+            </table>
+            <div class="etat-vide-tableau" id="aucun-tarif-groupe-recherche" hidden>Aucun tarif trouvé.</div>
+          ` : `<div class="etat-vide-tableau">Aucun tarif entre groupes.</div>`}
+        </div>
+      </div>
+    `;
+  }
+
+  function rendreExceptions(exceptions, zoneParCode) {
+    return `
+      <div class="bloc-tableau">
+        <div class="tableau-titre titre-avec-recherche">
+          <span>${exceptions.length} exception${exceptions.length > 1 ? "s" : ""}</span>
+          <input id="recherche-exceptions" class="recherche-zones-tarifs" type="search" placeholder="Rechercher une zone" autocomplete="off">
+        </div>
+        ${exceptions.length ? `
+          <table class="donnees">
+            <thead><tr><th>Zone A</th><th>Zone B</th><th>Tarif</th><th></th></tr></thead>
+            <tbody id="corps-exceptions">
+              ${exceptions.map((tarif) => {
+                const zoneA = zoneParCode.get(tarif.zone_a);
+                const zoneB = zoneParCode.get(tarif.zone_b);
+                const recherche = normaliserRecherche(`${tarif.zone_a} ${tarif.zone_b} ${libelleZone(zoneA)} ${libelleZone(zoneB)}`);
+                return `
+                  <tr data-recherche="${escapeHtml(recherche)}">
+                    <td>${escapeHtml(libelleZone(zoneA))}<span class="code-zone-secondaire">${escapeHtml(tarif.zone_a)}</span></td>
+                    <td>${escapeHtml(libelleZone(zoneB))}<span class="code-zone-secondaire">${escapeHtml(tarif.zone_b)}</span></td>
+                    <td class="cellule-donnee">${formaterFcfa(tarif.montant)} FCFA</td>
+                    <td class="cellule-actions">
+                      <button class="btn btn-discret btn-petit" data-modifier-exception="${tarif.id}">Modifier</button>
+                      <button class="btn btn-alerte btn-petit" data-desactiver-exception="${tarif.id}">Désactiver</button>
+                    </td>
+                  </tr>`;
+              }).join("")}
+            </tbody>
+          </table>
+          <div class="etat-vide-tableau" id="aucune-exception-recherche" hidden>Aucune exception trouvée.</div>
+        ` : `<div class="etat-vide-tableau">Aucune exception. Les tarifs de groupe s’appliquent.</div>`}
+      </div>
+    `;
+  }
+
+  function ouvrirFormulaireGroupe(groupe = null) {
     ouvrirModale(`
-      <h2>${paire ? "Modifier le tarif" : "Nouveau tarif par paire"}</h2>
-      <p class="message-erreur" id="erreur-paire"></p>
+      <h2>${groupe ? "Modifier le groupe" : "Nouveau groupe tarifaire"}</h2>
+      <p class="message-erreur" id="erreur-groupe"></p>
       <div class="formulaire">
-        <div class="champ"><label>Zone A</label><select id="p-zone-a">${optionsZones(paire?.zone_a)}</select></div>
-        <div class="champ"><label>Zone B</label><select id="p-zone-b">${optionsZones(paire?.zone_b)}</select></div>
-        <div class="champ"><label>Montant (FCFA)</label><input id="p-montant" type="number" min="1" value="${paire?.montant || ""}" required></div>
+        <div class="champ"><label>Code</label><input id="g-code" value="${escapeHtml(groupe?.code || "")}" ${groupe ? "disabled" : ""} placeholder="CENTRE"></div>
+        <div class="champ"><label>Nom</label><input id="g-nom" value="${escapeHtml(groupe?.nom || "")}" placeholder="Abidjan centre"></div>
       </div>
       <div class="actions-bas">
-        <button class="btn btn-discret" id="btn-annuler-paire">Annuler</button>
-        <button class="btn btn-primaire" id="btn-enregistrer-paire">Enregistrer</button>
+        <button class="btn btn-discret" id="btn-annuler-groupe">Annuler</button>
+        <button class="btn btn-primaire" id="btn-enregistrer-groupe">Enregistrer</button>
       </div>
     `, (boite) => {
-      boite.querySelector("#btn-annuler-paire").addEventListener("click", fermerModale);
-      boite.querySelector("#btn-enregistrer-paire").addEventListener("click", async (evenement) => {
-        const zoneA = boite.querySelector("#p-zone-a").value;
-        const zoneB = boite.querySelector("#p-zone-b").value;
-        const montant = Number(boite.querySelector("#p-montant").value);
-        const erreur = boite.querySelector("#erreur-paire");
-        if (!zoneA || !zoneB || montant <= 0) {
-          erreur.textContent = "Les deux zones et un montant supérieur à zéro sont obligatoires.";
+      boite.querySelector("#btn-annuler-groupe").addEventListener("click", fermerModale);
+      boite.querySelector("#btn-enregistrer-groupe").addEventListener("click", async (evenement) => {
+        const code = boite.querySelector("#g-code").value.trim().toUpperCase();
+        const nom = boite.querySelector("#g-nom").value.trim();
+        const erreur = boite.querySelector("#erreur-groupe");
+        if (!code || !nom) {
+          erreur.textContent = "Le code et le nom sont obligatoires.";
           erreur.classList.add("visible");
           return;
         }
         evenement.currentTarget.disabled = true;
-        const resultat = await enregistrerTarifPaire(
-          { zoneDepart: zoneA, zoneArrivee: zoneB, montant },
+        const resultat = await enregistrerGroupeTarifaire({ code, nom }, profil.id_entreprise);
+        if (resultat.ok) {
+          afficherFlash("Groupe enregistré");
+          fermerModale();
+          rafraichir();
+        } else {
+          erreur.textContent = resultat.message;
+          erreur.classList.add("visible");
+          evenement.currentTarget.disabled = false;
+        }
+      });
+    });
+  }
+
+  function ouvrirFormulaireTarifGroupe(tarif, groupes) {
+    const options = (selection) => groupes.map((groupe) =>
+      `<option value="${groupe.id_groupe}" ${groupe.id_groupe === selection ? "selected" : ""}>${escapeHtml(groupe.nom)}</option>`
+    ).join("");
+    ouvrirModale(`
+      <h2>${tarif ? "Modifier le tarif" : "Tarif entre groupes"}</h2>
+      <p class="message-erreur" id="erreur-tarif-groupe"></p>
+      <div class="formulaire">
+        <div class="champ"><label>Groupe A</label><select id="tg-a">${options(tarif?.groupe_a)}</select></div>
+        <div class="champ"><label>Groupe B</label><select id="tg-b">${options(tarif?.groupe_b)}</select></div>
+        <div class="champ"><label>Montant (FCFA)</label><input id="tg-montant" type="number" min="1" inputmode="numeric" value="${tarif?.montant || ""}"></div>
+      </div>
+      <div class="actions-bas">
+        <button class="btn btn-discret" id="btn-annuler-tarif-groupe">Annuler</button>
+        <button class="btn btn-primaire" id="btn-enregistrer-tarif-groupe">Enregistrer</button>
+      </div>
+    `, (boite) => {
+      boite.querySelector("#btn-annuler-tarif-groupe").addEventListener("click", fermerModale);
+      boite.querySelector("#btn-enregistrer-tarif-groupe").addEventListener("click", async (evenement) => {
+        const groupeDepart = boite.querySelector("#tg-a").value;
+        const groupeArrivee = boite.querySelector("#tg-b").value;
+        const montant = Number(boite.querySelector("#tg-montant").value);
+        const erreur = boite.querySelector("#erreur-tarif-groupe");
+        if (!groupeDepart || !groupeArrivee || montant <= 0) {
+          erreur.textContent = "Les deux groupes et un montant supérieur à zéro sont obligatoires.";
+          erreur.classList.add("visible");
+          return;
+        }
+        evenement.currentTarget.disabled = true;
+        const resultat = await enregistrerTarifGroupes(
+          { groupeDepart, groupeArrivee, montant },
           profil.id_entreprise
         );
         if (resultat.ok) {
@@ -232,126 +427,47 @@ export async function monter(conteneur, actionsContainer, profil) {
     });
   }
 
-  async function ouvrirTarifsNouvelleZone(nouvelleZone) {
-    const [zonesActives, pairesActives] = await Promise.all([
-      listerZones().then((zones) => zones.filter((zone) => zone.actif)),
-      listerTarifsPaires().then((paires) => paires.filter((paire) => paire.actif))
-    ]);
-    const montantParPaire = new Map(pairesActives.map((paire) => [
-      [paire.zone_a, paire.zone_b].sort().join("|"),
-      paire.montant
-    ]));
-    const zonesTriees = zonesActives
-      .filter((zone) => zone.code_zone !== nouvelleZone.code_zone)
-      .sort((a, b) =>
-      libelleZone(a).localeCompare(libelleZone(b), "fr", { sensitivity: "base" })
-    );
-
-    if (!zonesTriees.length) {
-      afficherFlash("Zone créée");
-      fermerModale();
-      rafraichir();
-      return;
-    }
-
+  function ouvrirFormulaireException(tarif, zones) {
+    const options = (selection) => zones.map((zone) =>
+      `<option value="${zone.code_zone}" ${zone.code_zone === selection ? "selected" : ""}>${escapeHtml(libelleZone(zone))}</option>`
+    ).join("");
     ouvrirModale(`
-      <h2>Tarifs de ${escapeHtml(libelleZone(nouvelleZone))}</h2>
-      <p class="message-erreur" id="erreur-grille-tarifs"></p>
-      <div class="outils-grille-tarifs">
-        <div class="champ">
-          <label>Montant commun</label>
-          <div class="ligne-montant-commun">
-            <input id="montant-commun-zone" type="number" min="1" placeholder="FCFA">
-            <button class="btn btn-discret" id="appliquer-montant-commun" type="button">Appliquer à toutes</button>
-          </div>
-        </div>
-        <div class="champ">
-          <label>Rechercher</label>
-          <input id="recherche-grille-tarifs" type="search" placeholder="Commune, secteur ou code">
-        </div>
-        <div class="progression-tarifs" id="progression-tarifs"></div>
-      </div>
-      <div class="grille-tarifs-zone" id="grille-tarifs-zone">
-        ${zonesTriees.map((zone) => {
-          const cle = [nouvelleZone.code_zone, zone.code_zone].sort().join("|");
-          const valeur = montantParPaire.get(cle) || "";
-          const recherche = normaliserRecherche(`${zone.code_zone} ${zone.nom_commune} ${zone.secteur}`);
-          return `
-            <label class="ligne-tarif-zone" data-recherche="${escapeHtml(recherche)}">
-              <span>
-                <strong>${escapeHtml(libelleZone(zone))}</strong>
-                <small>${escapeHtml(zone.code_zone)}</small>
-              </span>
-              <input
-                class="montant-paire-zone"
-                data-zone="${escapeHtml(zone.code_zone)}"
-                type="number"
-                min="1"
-                inputmode="numeric"
-                value="${escapeHtml(valeur)}"
-                placeholder="FCFA"
-              >
-            </label>`;
-        }).join("")}
+      <h2>${tarif ? "Modifier l’exception" : "Nouvelle exception"}</h2>
+      <p class="message-erreur" id="erreur-exception"></p>
+      <div class="formulaire">
+        <div class="champ"><label>Zone A</label><select id="e-zone-a">${options(tarif?.zone_a)}</select></div>
+        <div class="champ"><label>Zone B</label><select id="e-zone-b">${options(tarif?.zone_b)}</select></div>
+        <div class="champ"><label>Montant (FCFA)</label><input id="e-montant" type="number" min="1" inputmode="numeric" value="${tarif?.montant || ""}"></div>
       </div>
       <div class="actions-bas">
-        <button class="btn btn-discret" id="btn-plus-tard-tarifs">Plus tard</button>
-        <button class="btn btn-primaire" id="btn-enregistrer-grille-tarifs">Enregistrer tous les tarifs</button>
+        <button class="btn btn-discret" id="btn-annuler-exception">Annuler</button>
+        <button class="btn btn-primaire" id="btn-enregistrer-exception">Enregistrer</button>
       </div>
     `, (boite) => {
-      const champs = [...boite.querySelectorAll(".montant-paire-zone")];
-      const progression = boite.querySelector("#progression-tarifs");
-      const mettreAJourProgression = () => {
-        const remplis = champs.filter((champ) => Number(champ.value) > 0).length;
-        progression.textContent = `${remplis} / ${champs.length} tarifs renseignés`;
-      };
-
-      champs.forEach((champ) => champ.addEventListener("input", mettreAJourProgression));
-      mettreAJourProgression();
-
-      boite.querySelector("#appliquer-montant-commun").addEventListener("click", () => {
-        const montant = Number(boite.querySelector("#montant-commun-zone").value);
-        if (montant <= 0) return;
-        champs.forEach((champ) => { champ.value = montant; });
-        mettreAJourProgression();
-      });
-
-      boite.querySelector("#recherche-grille-tarifs").addEventListener("input", (evenement) => {
-        const terme = normaliserRecherche(evenement.target.value);
-        boite.querySelectorAll(".ligne-tarif-zone").forEach((ligne) => {
-          ligne.hidden = !ligne.dataset.recherche.includes(terme);
-        });
-      });
-
-      boite.querySelector("#btn-plus-tard-tarifs").addEventListener("click", () => {
-        fermerModale();
-        afficherFlash("Zone créée — tarifs à compléter");
-        rafraichir();
-      });
-
-      boite.querySelector("#btn-enregistrer-grille-tarifs").addEventListener("click", async (evenement) => {
-        const incomplets = champs.filter((champ) => Number(champ.value) <= 0);
-        const erreur = boite.querySelector("#erreur-grille-tarifs");
-        if (incomplets.length) {
-          erreur.textContent = `${incomplets.length} tarif${incomplets.length > 1 ? "s sont" : " est"} encore à renseigner.`;
+      boite.querySelector("#btn-annuler-exception").addEventListener("click", fermerModale);
+      boite.querySelector("#btn-enregistrer-exception").addEventListener("click", async (evenement) => {
+        const zoneDepart = boite.querySelector("#e-zone-a").value;
+        const zoneArrivee = boite.querySelector("#e-zone-b").value;
+        const montant = Number(boite.querySelector("#e-montant").value);
+        const erreur = boite.querySelector("#erreur-exception");
+        if (!zoneDepart || !zoneArrivee || montant <= 0) {
+          erreur.textContent = "Les deux zones et un montant supérieur à zéro sont obligatoires.";
           erreur.classList.add("visible");
-          incomplets[0].focus();
           return;
         }
-
+        if (!tarif && zoneDepart === zoneArrivee) {
+          erreur.textContent = "Le tarif local se règle directement dans la fiche de la zone.";
+          erreur.classList.add("visible");
+          return;
+        }
         evenement.currentTarget.disabled = true;
-        const resultat = await enregistrerTarifsPairesPourZone({
-          codeZone: nouvelleZone.code_zone,
-          tarifs: champs.map((champ) => ({
-            codeZone: champ.dataset.zone,
-            montant: Number(champ.value)
-          }))
-        }, profil.id_entreprise);
-
+        const resultat = await enregistrerTarifPaire(
+          { zoneDepart, zoneArrivee, montant },
+          profil.id_entreprise
+        );
         if (resultat.ok) {
-          afficherFlash("Zone et tarifs configurés");
+          afficherFlash("Exception enregistrée");
           fermerModale();
-          ongletActif = "ZONES";
           rafraichir();
         } else {
           erreur.textContent = resultat.message;
@@ -362,15 +478,20 @@ export async function monter(conteneur, actionsContainer, profil) {
     });
   }
 
-  function ouvrirFormulaireZone(zone) {
+  function ouvrirFormulaireZone(zone, groupes) {
     ouvrirModale(`
       <h2>${zone ? "Modifier la zone" : "Nouvelle zone"}</h2>
       <p class="message-erreur" id="erreur-zone"></p>
       <div class="formulaire">
-        <div class="champ"><label>Code zone</label><input id="z-code" value="${zone?.code_zone || ""}" ${zone ? "disabled" : ""} placeholder="YOP-NIANGON"></div>
-        <div class="champ"><label>Commune</label><input id="z-nom-commune" value="${zone?.nom_commune || ""}" placeholder="Yopougon"></div>
-        <div class="champ"><label>Secteur</label><input id="z-secteur" value="${zone?.secteur || ""}" placeholder="Niangon"></div>
-        <div class="champ"><label>Mots-clés</label><input id="z-mots-cles" value="${(zone?.mots_cles || []).join(", ")}" placeholder="Niangon Nord, Niangon Sud"></div>
+        <div class="champ"><label>Code zone</label><input id="z-code" value="${escapeHtml(zone?.code_zone || "")}" ${zone ? "disabled" : ""} placeholder="YOP-NIANGON"></div>
+        <div class="champ"><label>Commune</label><input id="z-nom-commune" value="${escapeHtml(zone?.nom_commune || "")}" placeholder="Yopougon"></div>
+        <div class="champ"><label>Secteur</label><input id="z-secteur" value="${escapeHtml(zone?.secteur || "")}" placeholder="Niangon"></div>
+        <div class="champ"><label>Groupe tarifaire</label><select id="z-groupe">
+          <option value="">Choisir un groupe</option>
+          ${groupes.map((groupe) => `<option value="${groupe.id_groupe}" ${groupe.id_groupe === zone?.id_groupe_tarifaire ? "selected" : ""}>${escapeHtml(groupe.nom)}</option>`).join("")}
+        </select></div>
+        <div class="champ"><label>Tarif dans cette même zone (FCFA)</label><input id="z-tarif-intra" type="number" min="1" inputmode="numeric" value="${zone?.tarif_intra_zone || ""}" placeholder="1000"></div>
+        <div class="champ"><label>Mots-clés</label><input id="z-mots-cles" value="${escapeHtml((zone?.mots_cles || []).join(", "))}" placeholder="Niangon Nord, Niangon Sud"></div>
         <div class="champ">
           <label>Hub de ramassage</label>
           <select id="z-hub">
@@ -380,18 +501,20 @@ export async function monter(conteneur, actionsContainer, profil) {
         </div>
       </div>
       <div class="actions-bas">
-        <button class="btn btn-discret" id="btn-annuler">Annuler</button>
-        <button class="btn btn-primaire" id="btn-enregistrer">Enregistrer</button>
+        <button class="btn btn-discret" id="btn-annuler-zone">Annuler</button>
+        <button class="btn btn-primaire" id="btn-enregistrer-zone">Enregistrer</button>
       </div>
     `, (boite) => {
-      boite.querySelector("#btn-annuler").addEventListener("click", fermerModale);
-      boite.querySelector("#btn-enregistrer").addEventListener("click", async (evenement) => {
+      boite.querySelector("#btn-annuler-zone").addEventListener("click", fermerModale);
+      boite.querySelector("#btn-enregistrer-zone").addEventListener("click", async (evenement) => {
         const codeZone = boite.querySelector("#z-code").value.trim().toUpperCase();
         const nomCommune = boite.querySelector("#z-nom-commune").value.trim();
         const secteur = boite.querySelector("#z-secteur").value.trim() || nomCommune;
+        const idGroupeTarifaire = boite.querySelector("#z-groupe").value;
+        const tarifIntraZone = Number(boite.querySelector("#z-tarif-intra").value);
         const erreur = boite.querySelector("#erreur-zone");
-        if (!codeZone || !nomCommune) {
-          erreur.textContent = "Le code et la commune sont obligatoires.";
+        if (!codeZone || !nomCommune || !idGroupeTarifaire || tarifIntraZone <= 0) {
+          erreur.textContent = "Le code, la commune, le groupe et le tarif local sont obligatoires.";
           erreur.classList.add("visible");
           return;
         }
@@ -406,28 +529,20 @@ export async function monter(conteneur, actionsContainer, profil) {
           secteur,
           nomCommune,
           motsCles,
-          idHub: boite.querySelector("#z-hub").value || null
+          idHub: boite.querySelector("#z-hub").value || null,
+          idGroupeTarifaire,
+          tarifIntraZone
         }, profil.id_entreprise);
 
-        if (!resultat.ok) {
+        if (resultat.ok) {
+          afficherFlash(zone ? "Zone modifiée" : "Zone créée");
+          fermerModale();
+          rafraichir();
+        } else {
           erreur.textContent = resultat.message;
           erreur.classList.add("visible");
           evenement.currentTarget.disabled = false;
-          return;
         }
-
-        if (zone) {
-          afficherFlash("Zone modifiée");
-          fermerModale();
-          rafraichir();
-          return;
-        }
-
-        ouvrirTarifsNouvelleZone({
-          code_zone: codeZone,
-          nom_commune: nomCommune,
-          secteur
-        });
       });
     });
   }

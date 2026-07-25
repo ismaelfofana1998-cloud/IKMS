@@ -740,17 +740,23 @@ export async function modifierVehicule(idVehicule, champs) {
 export async function listerZones() {
   const { data, error } = await sb()
     .from("zones_tarification")
-    .select("id, code_zone, secteur, nom_commune, mots_cles, actif, id_hub")
+    .select("id, code_zone, secteur, nom_commune, mots_cles, actif, id_hub, id_groupe_tarifaire, tarif_intra_zone")
     .order("nom_commune", { ascending: true });
   if (error) throw error;
   return data || [];
 }
 
-export async function enregistrerZone({ codeZone, secteur, nomCommune, motsCles, idHub }, idEntreprise) {
+export async function enregistrerZone(
+  { codeZone, secteur, nomCommune, motsCles, idHub, idGroupeTarifaire, tarifIntraZone },
+  idEntreprise
+) {
   const { error } = await sb().from("zones_tarification").upsert(
     {
       id_entreprise: idEntreprise, code_zone: codeZone.toUpperCase(), secteur,
-      nom_commune: nomCommune, mots_cles: motsCles || [], id_hub: idHub || null, actif: true
+      nom_commune: nomCommune, mots_cles: motsCles || [], id_hub: idHub || null,
+      id_groupe_tarifaire: idGroupeTarifaire || null,
+      tarif_intra_zone: tarifIntraZone || null,
+      actif: true
     },
     { onConflict: "id_entreprise,code_zone" }
   );
@@ -762,10 +768,72 @@ export async function desactiverZone(id) {
   return { ok: !error, message: error?.message };
 }
 
+export async function listerGroupesTarifaires() {
+  const { data, error } = await sb()
+    .from("groupes_tarifaires")
+    .select("id_groupe, code, nom, actif")
+    .order("nom", { ascending: true });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function enregistrerGroupeTarifaire({ code, nom }, idEntreprise) {
+  const { error } = await sb().from("groupes_tarifaires").upsert(
+    {
+      id_entreprise: idEntreprise,
+      code: code.trim().toUpperCase(),
+      nom: nom.trim(),
+      actif: true
+    },
+    { onConflict: "id_entreprise,code" }
+  );
+  return { ok: !error, message: error?.message };
+}
+
+export async function desactiverGroupeTarifaire(idGroupe) {
+  const { error } = await sb()
+    .from("groupes_tarifaires")
+    .update({ actif: false })
+    .eq("id_groupe", idGroupe);
+  return { ok: !error, message: error?.message };
+}
+
+export async function listerTarifsGroupes() {
+  const { data, error } = await sb()
+    .from("tarifs_groupes")
+    .select("id, groupe_a, groupe_b, montant, actif")
+    .order("id", { ascending: true });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function enregistrerTarifGroupes(
+  { groupeDepart, groupeArrivee, montant },
+  idEntreprise
+) {
+  const groupeA = groupeDepart <= groupeArrivee ? groupeDepart : groupeArrivee;
+  const groupeB = groupeDepart <= groupeArrivee ? groupeArrivee : groupeDepart;
+  const { error } = await sb().from("tarifs_groupes").upsert(
+    {
+      id_entreprise: idEntreprise,
+      groupe_a: groupeA,
+      groupe_b: groupeB,
+      montant,
+      actif: true
+    },
+    { onConflict: "id_entreprise,groupe_a,groupe_b" }
+  );
+  return { ok: !error, message: error?.message };
+}
+
+export async function desactiverTarifGroupes(id) {
+  const { error } = await sb().from("tarifs_groupes").update({ actif: false }).eq("id", id);
+  return { ok: !error, message: error?.message };
+}
+
 // ---------------------------------------------------------------------------
-// Tarifs par paire de zones (depart -> arrivee). zone1->zone2 et zone2->zone1
-// partagent la même ligne : on normalise toujours en (zone_a <= zone_b) avant
-// d'écrire, pour matcher la contrainte côté base (voir 17_zones_paires_et_obligatoires.sql).
+// Exceptions exactes entre zones. Elles restent prioritaires sur le tarif
+// intra-zone et sur les groupes tarifaires.
 // ---------------------------------------------------------------------------
 export async function listerTarifsPaires() {
   const { data, error } = await sb()
@@ -783,27 +851,6 @@ export async function enregistrerTarifPaire({ zoneDepart, zoneArrivee, montant }
   const zoneB = a <= b ? b : a;
   const { error } = await sb().from("zones_tarifs_paires").upsert(
     { id_entreprise: idEntreprise, zone_a: zoneA, zone_b: zoneB, montant, actif: true },
-    { onConflict: "id_entreprise,zone_a,zone_b" }
-  );
-  return { ok: !error, message: error?.message };
-}
-
-export async function enregistrerTarifsPairesPourZone({ codeZone, tarifs }, idEntreprise) {
-  const nouveauCode = codeZone.toUpperCase();
-  const lignes = tarifs.map((tarif) => {
-    const autreCode = tarif.codeZone.toUpperCase();
-    const zoneA = nouveauCode <= autreCode ? nouveauCode : autreCode;
-    const zoneB = nouveauCode <= autreCode ? autreCode : nouveauCode;
-    return {
-      id_entreprise: idEntreprise,
-      zone_a: zoneA,
-      zone_b: zoneB,
-      montant: tarif.montant,
-      actif: true
-    };
-  });
-  const { error } = await sb().from("zones_tarifs_paires").upsert(
-    lignes,
     { onConflict: "id_entreprise,zone_a,zone_b" }
   );
   return { ok: !error, message: error?.message };
