@@ -1,6 +1,6 @@
 -- ============================================================================
 -- Administration des zones et groupes
--- A executer apres 20260725000400_groupes_tarifaires.sql.
+-- A executer apres 64_groupes_tarifaires.sql.
 -- ============================================================================
 
 begin;

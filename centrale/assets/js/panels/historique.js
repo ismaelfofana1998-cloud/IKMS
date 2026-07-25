@@ -171,7 +171,7 @@ export async function monter(conteneur, actionsContainer) {
       resultats.innerHTML = `
         <div class="etat-vide-tableau etat-erreur-historique">
           ${migrationManquante
-            ? "L’historique nécessite l’application de la migration 20260725000200_operations_historique.sql dans Supabase."
+            ? "L’historique nécessite l’application de la migration 62_operations_historique.sql dans Supabase."
             : "Impossible de charger l’historique pour le moment."}
         </div>`;
     } finally {
