@@ -244,7 +244,7 @@ test("la refonte reprend la palette et la typographie du PDF", async () => {
 });
 
 test("les identifiants metier utilisent la date et un compteur extensible", async (t) => {
-  const cheminMigration = join(root, "supabase/migrations/57_identifiants_metier_dates.sql");
+  const cheminMigration = join(root, "supabase/migrations/20260725000100_identifiants_metier_dates.sql");
   if (!files.includes(cheminMigration)) {
     t.skip("migration absente de ce dépôt");
     return;
@@ -322,8 +322,8 @@ test("la gestion des zones reste exploitable sans matrice de paires", async () =
     readFile(join(root, "centrale/assets/js/panels/zones.js"), "utf8"),
     readFile(join(root, "centrale/assets/js/repository.js"), "utf8"),
     readFile(join(root, "centrale/assets/css/centrale.css"), "utf8"),
-    readFile(join(root, "supabase/migrations/60_groupes_tarifaires.sql"), "utf8"),
-    readFile(join(root, "supabase/migrations/61_administration_zones_groupes.sql"), "utf8")
+    readFile(join(root, "supabase/migrations/20260725000400_groupes_tarifaires.sql"), "utf8"),
+    readFile(join(root, "supabase/migrations/20260725000500_administration_zones_groupes.sql"), "utf8")
   ]);
 
   assert.match(panneauZones, />Zones<\/button>/);
@@ -386,7 +386,7 @@ test("l'historique est recherché côté serveur, paginé et exporté en xlsx", 
   const [historique, repository, migration] = await Promise.all([
     readFile(join(root, "centrale/assets/js/panels/historique.js"), "utf8"),
     readFile(join(root, "centrale/assets/js/repository.js"), "utf8"),
-    readFile(join(root, "supabase/migrations/58_operations_historique.sql"), "utf8")
+    readFile(join(root, "supabase/migrations/20260725000200_operations_historique.sql"), "utf8")
   ]);
   const { creerClasseurHistorique } = await import("../centrale/assets/js/excel.js");
 
@@ -477,7 +477,7 @@ test("les écrans historiques, expédition et retours privilégient l'informatio
 
 test("le choix d'un hub de retour est justifié puis confirmé par le hub", async () => {
   const [migration, livreurRepository, centraleRepository, operations] = await Promise.all([
-    readFile(join(root, "supabase/migrations/59_confirmation_hub_retour.sql"), "utf8"),
+    readFile(join(root, "supabase/migrations/20260725000300_confirmation_hub_retour.sql"), "utf8"),
     readFile(join(root, "livreur/assets/js/repository.js"), "utf8"),
     readFile(join(root, "centrale/assets/js/repository.js"), "utf8"),
     readFile(join(root, "centrale/assets/js/panels/operations.js"), "utf8")

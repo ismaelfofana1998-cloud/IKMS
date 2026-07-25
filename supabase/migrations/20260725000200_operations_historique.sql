@@ -1,3 +1,5 @@
+-- Operations unifiees et historique des commandes
+
 begin;
 
 create or replace function public.rpc_historique_commandes(
