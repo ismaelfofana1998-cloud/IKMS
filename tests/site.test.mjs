@@ -273,6 +273,24 @@ test("les identifiants metier utilisent la date et un compteur extensible", asyn
   assert.match(styles, /color:\s*#C94C18/);
 });
 
+test("l'écran opérations reste dense, repliable et ne masque pas ses actions", async () => {
+  const [operations, interfaceUtilisateur, styles] = await Promise.all([
+    readFile(join(root, "centrale/assets/js/panels/operations.js"), "utf8"),
+    readFile(join(root, "centrale/assets/js/ui.js"), "utf8"),
+    readFile(join(root, "centrale/assets/css/centrale.css"), "utf8")
+  ]);
+
+  assert.match(operations, /<details class="bloc-tableau etape-operation"/);
+  assert.match(operations, /<summary class="tableau-titre entete-etape-operation">/);
+  assert.match(operations, /class="identifiant-operation"/);
+  assert.match(operations, /class="adresse-operation"/);
+  assert.match(styles, /\.etape-operation table\.donnees td\s*\{[^}]*padding:\s*10px 14px/s);
+  assert.match(styles, /\.identifiant-operation\s*\{[^}]*font-family:\s*inherit/s);
+  assert.match(interfaceUtilisateur, /zone-messages-flash/);
+  assert.match(styles, /\.zone-messages-flash\s*\{[^}]*bottom:\s*22px/s);
+  assert.doesNotMatch(styles, /\.message-flash\s*\{[^}]*top:/s);
+});
+
 test("les bandeaux partagent le brun public et l'application iPhone remplit les zones sures", async () => {
   const [themePublic, shellPublic, expedition, livreur, centrale, pageExpediteur] = await Promise.all([
     readFile(join(root, "public/assets/css/theme.css"), "utf8"),

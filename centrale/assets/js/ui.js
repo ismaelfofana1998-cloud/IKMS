@@ -9,12 +9,31 @@ export function escapeHtml(texte) {
 }
 
 export function afficherFlash(texte, estErreur = false) {
+  let zone = document.querySelector(".zone-messages-flash");
+  if (!zone) {
+    zone = document.createElement("div");
+    zone.className = "zone-messages-flash";
+    zone.setAttribute("aria-live", "polite");
+    zone.setAttribute("aria-atomic", "false");
+    document.body.append(zone);
+  }
+
+  while (zone.children.length >= 3) zone.firstElementChild?.remove();
+
   const el = document.createElement("div");
-  el.className = "message-flash";
-  if (estErreur) el.style.background = "var(--alerte)";
+  el.className = `message-flash${estErreur ? " erreur" : ""}`;
+  el.setAttribute("role", estErreur ? "alert" : "status");
   el.textContent = texte;
-  document.body.append(el);
-  setTimeout(() => el.remove(), 3200);
+  el.title = "Cliquer pour fermer";
+  el.addEventListener("click", () => el.remove());
+  zone.append(el);
+  setTimeout(() => {
+    el.classList.add("disparition");
+    setTimeout(() => {
+      el.remove();
+      if (!zone.children.length) zone.remove();
+    }, 180);
+  }, 3000);
 }
 
 export async function copierTexte(texte) {
