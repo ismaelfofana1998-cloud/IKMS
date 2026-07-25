@@ -389,7 +389,7 @@ export async function demanderDepotAvecHub(idColis, idHubReel, motif) {
 export async function listerColisAValider(idHubAgent = null) {
   let requete = sb()
     .from("colis")
-    .select("id_colis, id_commande, destinataire_nom, statut, motif_retour, code_zone, cree_le, alerte_zone, commandes(alerte_zone_expediteur)")
+    .select("id_colis, id_commande, destinataire_nom, statut, motif_retour, motif_choix_hub_retour, code_zone, cree_le, alerte_zone, commandes(alerte_zone_expediteur)")
     .in("statut", ["DEPOT_DEMANDE", "RETOUR_DEMANDE"])
     .order("cree_le", { ascending: true });
   if (idHubAgent) requete = requete.eq("id_hub_reel", idHubAgent);
@@ -407,7 +407,7 @@ export async function validerDepot(idColis) {
 // avait directement le choix reprogrammer/retour expéditeur sans jamais
 // confirmer que le colis était réellement là.
 export async function validerRetourRecu(idColis) {
-  const { error } = await sb().rpc("avancer_colis", { p_id_colis: idColis, p_evenement: "VALIDER_RETOUR_RECU" });
+  const { error } = await sb().rpc("rpc_confirmer_hub_retour", { p_id_colis: idColis });
   return { ok: !error, message: error?.message };
 }
 
@@ -554,6 +554,19 @@ export async function listerColisDuLot(idLot) {
     .from("colis")
     .select("id_colis, destinataire_nom, destinataire_adresse, code_zone, montant_livraison, statut, alerte_zone")
     .eq("id_lot", idLot);
+  if (error) throw error;
+  return data || [];
+}
+
+export async function listerColisDesLots(idHubAgent = null) {
+  let requete = sb()
+    .from("colis")
+    .select("id_lot, id_colis, destinataire_nom, destinataire_adresse, code_zone, montant_livraison, statut, alerte_zone")
+    .in("statut", ["EN_LOT", "RECUP_DEMANDEE", "EN_TOURNEE"])
+    .not("id_lot", "is", null)
+    .order("id_colis", { ascending: true });
+  if (idHubAgent) requete = requete.eq("id_hub_reel", idHubAgent);
+  const { data, error } = await requete;
   if (error) throw error;
   return data || [];
 }

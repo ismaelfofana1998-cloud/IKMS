@@ -105,11 +105,10 @@ export async function listerHubs() {
 }
 
 export async function demanderDepotRetour(idColis, idHubReel, motif) {
-  const { error } = await getSupabaseClient().rpc("avancer_colis", {
+  const { error } = await getSupabaseClient().rpc("rpc_demander_depot_retour", {
     p_id_colis: idColis,
-    p_evenement: "DEMANDER_RETOUR_HUB",
-    p_motif: motif || null,
-    p_details: idHubReel ? { id_hub_reel: idHubReel } : {}
+    p_id_hub_reel: idHubReel,
+    p_motif_choix_hub: motif
   });
   return { ok: !error, message: error?.message };
 }

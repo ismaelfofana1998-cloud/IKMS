@@ -17,7 +17,7 @@ import { getSupabaseClient } from "./supabase-client.js";
 import { localiserMoi, localiserSilencieusement, brancherAutocompletion, deviserZone, construireSelecteurZoneHtml, brancherSelecteurZone } from "./geo.js";
 import { validerExpediteur, validerDestinataire, effacerErreur, brancherValidationDirecte, formaterTelephoneAffichage, validerTelephone, afficherErreurToast } from "./expedition-validation.js";
 import { estimerTarif } from "./expedition-pricing.js";
-import { soumettreCommande, urlSuivi, partager } from "./expedition-submit.js";
+import { soumettreCommande, urlSuivi, urlWhatsApp } from "./expedition-submit.js";
 import { resoudreCodeEntreprise, traduireErreurAuth } from "./entreprise-contexte.js";
 
 const codeEntreprise = resoudreCodeEntreprise();
@@ -509,7 +509,7 @@ function initialiserEtape4() {
 // ----------------------------------------------------------------------------
 // Confirmation
 // ----------------------------------------------------------------------------
-function rendreConfirmation(resultat) {
+function rendreConfirmation(resultat, destinataires) {
   const premiere = resultat[0];
   const total = resultat.reduce((s, l) => s + Number(l.montant_livraison || 0), 0);
   document.querySelector('.etape[data-etape="4"] .chapitre-form').style.display = "none";
@@ -522,13 +522,25 @@ function rendreConfirmation(resultat) {
     <div class="bloc-recap bloc-partage-destinataires">
       <h3>${resultat.length > 1 ? `${resultat.length} colis créés` : "Colis créé"} · ${new Intl.NumberFormat("fr-FR").format(total)} FCFA</h3>
       <p class="aide-partage-destinataire">Partage le lien à chaque destinataire pour qu’il puisse transmettre sa position au livreur.</p>
-      ${resultat.map((l, i) => `
+      ${resultat.map((l, i) => {
+        const destinataire = destinataires[i] || {};
+        const nom = l.destinataire_nom || destinataire.destinataire_nom || `Destinataire ${i + 1}`;
+        const telephone = l.destinataire_tel || destinataire.destinataire_tel || "";
+        return `
         <div class="carte-partage-destinataire">
-          <span>Colis ${i + 1} · code ${escapeHtml(l.code_livraison)} · ${new Intl.NumberFormat("fr-FR").format(l.montant_livraison || 0)} FCFA</span>
-          <button class="btn-pub btn-partage-destinataire" data-partager="${urlSuivi(l.token_destinataire)}" data-texte="Voici le lien pour partager votre position au livreur">
-            Partager avec le destinataire
+          <div class="identite-partage-destinataire">
+            <strong>${escapeHtml(nom)}</strong>
+            <span>${escapeHtml(formaterTelephoneAffichage(telephone))}</span>
+            <small>Colis ${i + 1} · code ${escapeHtml(l.code_livraison)} · ${new Intl.NumberFormat("fr-FR").format(l.montant_livraison || 0)} FCFA</small>
+          </div>
+          <button class="btn-pub btn-partage-destinataire"
+            data-partager="${escapeHtml(urlSuivi(l.token_destinataire))}"
+            data-telephone="${escapeHtml(telephone)}"
+            data-nom="${escapeHtml(nom)}">
+            Ouvrir WhatsApp
           </button>
-        </div>`).join("")}
+        </div>`;
+      }).join("")}
     </div>
     ${!compteConnecte ? `
       <div class="proposition-compte-carte">
@@ -538,7 +550,10 @@ function rendreConfirmation(resultat) {
     <button class="btn-pub btn-pub-discret" id="btn-nouvelle-commande" style="margin-top:16px;">Envoyer un autre colis</button>
   `;
   conteneur.querySelectorAll("[data-partager]").forEach((b) => {
-    b.addEventListener("click", () => partager(b.dataset.texte, b.dataset.partager, b));
+    b.addEventListener("click", () => {
+      const texte = `Bonjour ${b.dataset.nom}, voici le lien IKMS pour suivre votre colis et partager votre position avec le livreur :`;
+      window.location.href = urlWhatsApp(b.dataset.telephone, texte, b.dataset.partager);
+    });
   });
   conteneur.querySelector("#btn-nouvelle-commande").addEventListener("click", () => window.location.reload());
   conteneur.querySelector("#btn-creer-compte-apres")?.addEventListener("click", () => {
@@ -616,7 +631,7 @@ async function demarrer() {
       return;
     }
 
-    rendreConfirmation(resultat.resultat);
+    rendreConfirmation(resultat.resultat, colis);
   });
 }
 

@@ -418,11 +418,6 @@ async function gererAction(dataset) {
   }
 }
 
-// Choix du hub réel au moment du dépôt d'un retour (échec de livraison) —
-// pré-rempli avec le hub de la commande, mais librement modifiable : c'est
-// le seul cas où un dépôt à un autre hub est permis (point relais), sans
-// justification à donner (contrairement à un dépôt normal, qui n'a plus ce
-// choix du tout — toujours le hub d'assignation, automatiquement).
 function ouvrirChoixHubDepotRetour(idColis, idHubPrevu) {
   return new Promise((resolve) => {
     if (!hubsDisponibles.length) { resolve(null); return; }
@@ -440,7 +435,7 @@ function ouvrirChoixHubDepotRetour(idColis, idHubPrevu) {
       <div class="entete-choix-hub-retour">
         <span class="sur-titre-retour">Retour · ${escapeHtml(idColis)}</span>
         <h2 class="feuille-titre">Dans quel hub déposes-tu le colis&nbsp;?</h2>
-        <p class="feuille-sous">Choisis le lieu où tu vas réellement remettre le retour.</p>
+        <p class="feuille-sous">Choisis le lieu réel et explique pourquoi. L’agent du hub devra confirmer ce choix à la réception.</p>
       </div>
       <div class="liste-hubs-retour" role="radiogroup" aria-label="Hub de dépôt du retour">
         ${hubsDisponibles.map((hub) => `
@@ -452,9 +447,15 @@ function ouvrirChoixHubDepotRetour(idColis, idHubPrevu) {
             <span class="choix-hub-retour-coche" aria-hidden="true">✓</span>
           </button>`).join("")}
       </div>
+      <label class="motif-choix-hub-retour" for="motif-choix-hub-retour">
+        <span>Pourquoi ce hub&nbsp;?</span>
+        <textarea id="motif-choix-hub-retour" rows="3" maxlength="240" placeholder="Ex. hub le plus proche après l’échec de livraison" required></textarea>
+        <small>Obligatoire · 240 caractères maximum</small>
+      </label>
+      <p class="message-erreur" id="erreur-choix-hub-retour"></p>
       <div class="actions-choix-hub-retour">
         <button class="btn btn-discret" id="btn-annuler-hub-retour" type="button">Annuler</button>
-        <button class="btn btn-primaire" id="btn-confirmer-hub" type="button">Confirmer ce hub</button>
+        <button class="btn btn-primaire" id="btn-confirmer-hub" type="button" disabled>Soumettre au hub</button>
       </div>
     `, (voile) => {
       voile.classList.add("voile-choix-hub-retour");
@@ -472,8 +473,23 @@ function ouvrirChoixHubDepotRetour(idColis, idHubPrevu) {
         fermerVoile();
       });
 
+      const champMotif = voile.querySelector("#motif-choix-hub-retour");
+      const boutonConfirmer = voile.querySelector("#btn-confirmer-hub");
+      champMotif.addEventListener("input", () => {
+        boutonConfirmer.disabled = champMotif.value.trim().length < 5;
+        voile.querySelector("#erreur-choix-hub-retour").classList.remove("visible");
+      });
+
       voile.querySelector("#btn-confirmer-hub").addEventListener("click", () => {
-        terminer({ idHub: idHubSelectionne, motif: null });
+        const motif = champMotif.value.trim();
+        if (motif.length < 5) {
+          const erreur = voile.querySelector("#erreur-choix-hub-retour");
+          erreur.textContent = "Explique brièvement pourquoi tu choisis ce hub.";
+          erreur.classList.add("visible");
+          champMotif.focus();
+          return;
+        }
+        terminer({ idHub: idHubSelectionne, motif });
         fermerVoile();
       });
     });

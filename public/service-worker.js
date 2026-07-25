@@ -1,4 +1,4 @@
-const CACHE = "ikms-public-v6";
+const CACHE = "ikms-public-v7";
 const SHELL = [
   "./expediteur.html",
   "./suivi.html",

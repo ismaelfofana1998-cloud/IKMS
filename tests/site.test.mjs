@@ -273,15 +273,18 @@ test("les identifiants metier utilisent la date et un compteur extensible", asyn
   assert.match(styles, /color:\s*#C94C18/);
 });
 
-test("l'écran opérations reste dense, repliable et ne masque pas ses actions", async () => {
+test("l'écran opérations sépare chaque file et affiche les colis des départs", async () => {
   const [operations, interfaceUtilisateur, styles] = await Promise.all([
     readFile(join(root, "centrale/assets/js/panels/operations.js"), "utf8"),
     readFile(join(root, "centrale/assets/js/ui.js"), "utf8"),
     readFile(join(root, "centrale/assets/css/centrale.css"), "utf8")
   ]);
 
-  assert.match(operations, /<details class="bloc-tableau etape-operation"/);
-  assert.match(operations, /<summary class="tableau-titre entete-etape-operation">/);
+  assert.doesNotMatch(operations, /\["TOUT",\s*"Tout"\]/);
+  assert.match(operations, /const visible = \(section\) => filtreActif === section/);
+  assert.match(operations, /class="liste-lots-depart"/);
+  assert.match(operations, /data-valider-depart-colis/);
+  assert.match(operations, /listerColisDesLots/);
   assert.match(operations, /class="identifiant-operation identifiant-metier"/);
   assert.match(operations, /class="adresse-operation"/);
   assert.match(styles, /\.etape-operation table\.donnees td\s*\{[^}]*padding:\s*10px 14px/s);
@@ -428,7 +431,9 @@ test("les écrans historiques, expédition et retours privilégient l'informatio
   assert.match(stylesCentrale, /\.historique-commandes td\s*\{[^}]*padding:\s*9px 12px/s);
 
   assert.doesNotMatch(expedition, /token_expediteur/);
-  assert.match(expedition, /Partager avec le destinataire/);
+  assert.match(expedition, /Ouvrir WhatsApp/);
+  assert.match(expedition, /formaterTelephoneAffichage\(telephone\)/);
+  assert.match(expeditionSubmit, /https:\/\/wa\.me\//);
   assert.match(expeditionSubmit, /\.rpc\("rpc_creer_commande"/);
   assert.match(operations, /data-partager-position-expediteur/);
   assert.match(operations, /POSITION_EXPEDITEUR/);
@@ -437,6 +442,8 @@ test("les écrans historiques, expédition et retours privilégient l'informatio
 
   assert.match(livreur, /voile-choix-hub-retour/);
   assert.match(livreur, /class="choix-hub-retour"/);
+  assert.match(livreur, /Pourquoi ce hub/);
+  assert.match(livreur, /motif\.length < 5/);
   assert.match(stylesLivreur, /\.voile-choix-hub-retour\s*\{[^}]*align-items:\s*center/s);
 
   assert.match(retours, /data-etape-retour/);
@@ -445,4 +452,21 @@ test("les écrans historiques, expédition et retours privilégient l'informatio
   assert.match(stylesCentrale, /\.filtres-retours/);
   assert.match(operationsRepository, /\.in\("statut",\s*\["EN_LOT",\s*"RECUP_DEMANDEE",\s*"EN_TOURNEE"\]\)/);
   assert.match(operationsRepository, /idsLotsLivraisonActifs/);
+});
+
+test("le choix d'un hub de retour est justifié puis confirmé par le hub", async () => {
+  const [migration, livreurRepository, centraleRepository, operations] = await Promise.all([
+    readFile(join(root, "supabase/migrations/59_confirmation_hub_retour.sql"), "utf8"),
+    readFile(join(root, "livreur/assets/js/repository.js"), "utf8"),
+    readFile(join(root, "centrale/assets/js/repository.js"), "utf8"),
+    readFile(join(root, "centrale/assets/js/panels/operations.js"), "utf8")
+  ]);
+
+  assert.match(migration, /motif_choix_hub_retour text/);
+  assert.match(migration, /rpc_demander_depot_retour/);
+  assert.match(migration, /rpc_confirmer_hub_retour/);
+  assert.match(migration, /hub_retour_confirme_par = v_acteur/);
+  assert.match(livreurRepository, /\.rpc\("rpc_demander_depot_retour"/);
+  assert.match(centraleRepository, /\.rpc\("rpc_confirmer_hub_retour"/);
+  assert.match(operations, /Confirmer le hub et réceptionner/);
 });
