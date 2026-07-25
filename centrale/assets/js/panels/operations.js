@@ -42,6 +42,8 @@ export async function monter(conteneur, actionsContainer, profil) {
   let livreurs = [];
   let nettoyageCreation = null;
   let chargement = false;
+  let sectionsInitialisees = false;
+  const sectionsOuvertes = new Set();
 
   actionsContainer.innerHTML = `
     <button class="btn btn-discret" id="btn-actualiser-operations">Actualiser</button>
@@ -52,13 +54,23 @@ export async function monter(conteneur, actionsContainer, profil) {
   const nomLivreur = (id) =>
     livreurs.find((livreur) => livreur.id_utilisateur === id)?.nom || "—";
 
+  const estOuverte = (section) => sectionsOuvertes.has(section);
+
+  function enteteSection(section, libelle, nombre) {
+    return `
+      <summary class="tableau-titre entete-etape-operation">
+        <span>${libelle} <small>${nombre}</small></span>
+        <svg class="chevron-etape-operation" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+          <path d="m6 9 6 6 6-6"/>
+        </svg>
+      </summary>`;
+  }
+
   function sectionRamassages(commandes) {
     if (!visible("RAMASSAGE")) return "";
     return `
-      <section class="bloc-tableau etape-operation" data-section-operation="RAMASSAGE">
-        <div class="tableau-titre">
-          <span>Ramassages <small>${commandes.length}</small></span>
-        </div>
+      <details class="bloc-tableau etape-operation" data-section-operation="RAMASSAGE" ${estOuverte("RAMASSAGE") ? "open" : ""}>
+        ${enteteSection("RAMASSAGE", "Ramassages", commandes.length)}
         ${commandes.length ? `
           <div class="barre-assignation-groupee">
             <select id="select-livreur-ramassages">
@@ -75,30 +87,33 @@ export async function monter(conteneur, actionsContainer, profil) {
                 ${commandes.map((commande) => `
                   <tr>
                     <td><input type="checkbox" class="case-operation-ramassage" value="${escapeHtml(commande.id_commande)}"></td>
-                    <td class="cellule-donnee">${escapeHtml(commande.id_ramassage || "—")}</td>
-                    <td class="cellule-donnee">${escapeHtml(commande.id_commande)}</td>
+                    <td class="identifiant-operation">${escapeHtml(commande.id_ramassage || "—")}</td>
+                    <td class="identifiant-operation">${escapeHtml(commande.id_commande)}</td>
                     <td>${escapeHtml(commande.expediteur_nom)}<br><small>${escapeHtml(commande.expediteur_tel)}</small></td>
-                    <td>${escapeHtml(commande.expediteur_adresse || "—")}<br>${alerteZone(commande.alerte_zone_expediteur)}</td>
+                    <td>
+                      <span class="adresse-operation" title="${escapeHtml(commande.expediteur_adresse || "—")}">${escapeHtml(commande.expediteur_adresse || "—")}</span>
+                      ${alerteZone(commande.alerte_zone_expediteur)}
+                    </td>
                     <td>${escapeHtml(commande.hubs?.nom || "—")}</td>
                     <td>${escapeHtml(nomLivreur(commande.id_livreur_ramassage))}</td>
                     <td>${tampon(commande.id_livreur_ramassage ? "A_RAMASSER" : "CREE")}</td>
                     <td class="cellule-actions">
                       <button class="btn btn-primaire btn-petit" data-assigner-ramassage="${escapeHtml(commande.id_commande)}">
-                        ${commande.id_livreur_ramassage ? "Réassigner" : "Assigner le ramassage"}
+                        ${commande.id_livreur_ramassage ? "Réassigner" : "Assigner"}
                       </button>
                     </td>
                   </tr>`).join("")}
               </tbody>
             </table>
           </div>` : `<div class="etat-vide-tableau">Aucun ramassage en attente.</div>`}
-      </section>`;
+      </details>`;
   }
 
   function sectionReceptions(colis) {
     if (!visible("RECEPTION")) return "";
     return `
-      <section class="bloc-tableau etape-operation" data-section-operation="RECEPTION">
-        <div class="tableau-titre"><span>Réceptions au hub <small>${colis.length}</small></span></div>
+      <details class="bloc-tableau etape-operation" data-section-operation="RECEPTION" ${estOuverte("RECEPTION") ? "open" : ""}>
+        ${enteteSection("RECEPTION", "Réceptions au hub", colis.length)}
         ${colis.length ? `
           <div class="tableau-defilant">
             <table class="donnees">
@@ -108,8 +123,8 @@ export async function monter(conteneur, actionsContainer, profil) {
                   const alerte = element.alerte_zone || element.commandes?.alerte_zone_expediteur;
                   return `
                     <tr${alerte ? ' class="ligne-alerte-zone"' : ""}>
-                      <td class="cellule-donnee">${escapeHtml(element.id_colis)}</td>
-                      <td class="cellule-donnee">${escapeHtml(element.id_commande)}</td>
+                      <td class="identifiant-operation">${escapeHtml(element.id_colis)}</td>
+                      <td class="identifiant-operation">${escapeHtml(element.id_commande)}</td>
                       <td>${escapeHtml(element.destinataire_nom)}<br>${alerteZone(alerte)}</td>
                       <td>${tampon(element.statut)}</td>
                       <td class="cellule-actions">
@@ -122,21 +137,19 @@ export async function monter(conteneur, actionsContainer, profil) {
               </tbody>
             </table>
           </div>` : `<div class="etat-vide-tableau">Aucune réception en attente.</div>`}
-      </section>`;
+      </details>`;
   }
 
   function sectionMiseEnLot(colis) {
     if (!visible("LOT")) return "";
     return `
-      <section class="bloc-tableau etape-operation" data-section-operation="LOT">
-        <div class="tableau-titre">
-          <span>Colis à mettre en lot <small>${colis.length}</small></span>
-          <button class="btn btn-primaire btn-petit" id="btn-creer-lot-operation" disabled>Créer le lot</button>
-        </div>
+      <details class="bloc-tableau etape-operation" data-section-operation="LOT" ${estOuverte("LOT") ? "open" : ""}>
+        ${enteteSection("LOT", "Colis à mettre en lot", colis.length)}
         ${colis.length ? `
           <div class="barre-selection-operation">
             <label><input type="checkbox" id="case-tous-colis-lot"> Tout sélectionner</label>
             <span id="compteur-colis-lot" class="compteur-selection"></span>
+            <button class="btn btn-primaire btn-petit action-selection-operation" id="btn-creer-lot-operation" disabled>Créer le lot</button>
           </div>
           <div class="tableau-defilant">
             <table class="donnees">
@@ -145,7 +158,7 @@ export async function monter(conteneur, actionsContainer, profil) {
                 ${colis.map((element) => `
                   <tr>
                     <td><input type="checkbox" class="case-operation-colis-lot" value="${escapeHtml(element.id_colis)}"></td>
-                    <td class="cellule-donnee">${escapeHtml(element.id_colis)}</td>
+                    <td class="identifiant-operation">${escapeHtml(element.id_colis)}</td>
                     <td>${escapeHtml(element.destinataire_nom)}<br>${alerteZone(element.alerte_zone)}</td>
                     <td>${escapeHtml(element.code_zone || "—")}</td>
                     <td class="cellule-donnee">${formaterFcfa(element.montant_livraison)} FCFA</td>
@@ -153,7 +166,7 @@ export async function monter(conteneur, actionsContainer, profil) {
               </tbody>
             </table>
           </div>` : `<div class="etat-vide-tableau">Aucun colis disponible pour un lot.</div>`}
-      </section>`;
+      </details>`;
   }
 
   function sectionLots(lots, section) {
@@ -164,8 +177,8 @@ export async function monter(conteneur, actionsContainer, profil) {
     const titreSection = section === "LIVRAISON" ? "Livraisons en cours" : "Lots et départs du hub";
     const lotsAAssigner = lotsAffiches.filter((lot) => !lot.id_livreur);
     return `
-      <section class="bloc-tableau etape-operation" data-section-operation="${section}">
-        <div class="tableau-titre"><span>${titreSection} <small>${lotsAffiches.length}</small></span></div>
+      <details class="bloc-tableau etape-operation" data-section-operation="${section}" ${estOuverte(section) ? "open" : ""}>
+        ${enteteSection(section, titreSection, lotsAffiches.length)}
         ${section === "DEPART" && lotsAAssigner.length ? `
           <div class="barre-assignation-groupee">
             <select id="select-livreur-lots">
@@ -185,7 +198,7 @@ export async function monter(conteneur, actionsContainer, profil) {
                     <td>${section === "DEPART" && !lot.id_livreur
                       ? `<input type="checkbox" class="case-operation-lot" value="${escapeHtml(lot.id_lot)}">`
                       : ""}</td>
-                    <td class="cellule-donnee">${escapeHtml(lot.id_lot)}${lot.note ? `<br><small>${escapeHtml(lot.note)}</small>` : ""}</td>
+                    <td class="identifiant-operation">${escapeHtml(lot.id_lot)}${lot.note ? `<br><small>${escapeHtml(lot.note)}</small>` : ""}</td>
                     <td>${lot.nb_colis || 0}</td>
                     <td>${escapeHtml(nomLivreur(lot.id_livreur))}</td>
                     <td>${tampon(lot.statut || "PREPARE")}</td>
@@ -201,7 +214,7 @@ export async function monter(conteneur, actionsContainer, profil) {
               </tbody>
             </table>
           </div>` : `<div class="etat-vide-tableau">${section === "LIVRAISON" ? "Aucune livraison en cours." : "Aucun lot en attente de départ."}</div>`}
-      </section>`;
+      </details>`;
   }
 
   function rendre(donnees) {
@@ -214,6 +227,13 @@ export async function monter(conteneur, actionsContainer, profil) {
       LIVRAISON: lotsActifs.filter((lot) => lot.statut === "EN_TOURNEE").length
     };
     compteurs.TOUT = Object.values(compteurs).reduce((total, valeur) => total + valeur, 0);
+
+    if (!sectionsInitialisees) {
+      const premiereSection = ["RAMASSAGE", "RECEPTION", "LOT", "DEPART", "LIVRAISON"]
+        .find((section) => compteurs[section] > 0) || "RAMASSAGE";
+      sectionsOuvertes.add(filtreActif === "TOUT" ? premiereSection : filtreActif);
+      sectionsInitialisees = true;
+    }
 
     conteneur.innerHTML = `
       <div class="filtres-operations" role="tablist" aria-label="Étapes opérationnelles">
@@ -313,7 +333,7 @@ export async function monter(conteneur, actionsContainer, profil) {
             <tbody>
               ${colis.map((element) => `
                 <tr>
-                  <td class="cellule-donnee">${escapeHtml(element.id_colis)}</td>
+                  <td class="identifiant-operation">${escapeHtml(element.id_colis)}</td>
                   <td>${escapeHtml(element.destinataire_nom)}<br><small>${escapeHtml(element.destinataire_adresse || "—")}</small><br>${alerteZone(element.alerte_zone)}</td>
                   <td>${escapeHtml(element.code_zone || "—")}</td>
                   <td>${tampon(element.statut)}</td>
@@ -377,9 +397,18 @@ export async function monter(conteneur, actionsContainer, profil) {
   }
 
   function brancherInteractions(donnees) {
+    conteneur.querySelectorAll("details[data-section-operation]").forEach((rubrique) => {
+      rubrique.addEventListener("toggle", () => {
+        const section = rubrique.dataset.sectionOperation;
+        if (rubrique.open) sectionsOuvertes.add(section);
+        else sectionsOuvertes.delete(section);
+      });
+    });
+
     conteneur.querySelectorAll("[data-filtre-operation]").forEach((bouton) => {
       bouton.addEventListener("click", () => {
         filtreActif = bouton.dataset.filtreOperation;
+        if (filtreActif !== "TOUT") sectionsOuvertes.add(filtreActif);
         rendre(donnees);
       });
     });
