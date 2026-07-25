@@ -1,6 +1,6 @@
 -- ============================================================================
 -- Groupes tarifaires et tarif intra-zone
--- A executer apres 20260725000300_confirmation_hub_retour.sql.
+-- A executer apres 63_confirmation_hub_retour.sql.
 --
 -- Une zone garde son code metier precis. Le prix est resolu dans cet ordre :
 --   1. exception exacte entre deux zones ;
