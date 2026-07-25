@@ -317,25 +317,29 @@ test("les bandeaux partagent le brun public et l'application iPhone remplit les 
   assert.match(pageExpediteur, /theme-color" content="#312A24"/i);
 });
 
-test("la gestion des zones reste exploitable avec de nombreuses paires", async () => {
-  const [panneauZones, repository, styles] = await Promise.all([
+test("la gestion des zones reste exploitable sans matrice de paires", async () => {
+  const [panneauZones, repository, styles, migration] = await Promise.all([
     readFile(join(root, "centrale/assets/js/panels/zones.js"), "utf8"),
     readFile(join(root, "centrale/assets/js/repository.js"), "utf8"),
-    readFile(join(root, "centrale/assets/css/centrale.css"), "utf8")
+    readFile(join(root, "centrale/assets/css/centrale.css"), "utf8"),
+    readFile(join(root, "supabase/migrations/60_groupes_tarifaires.sql"), "utf8")
   ]);
 
   assert.match(panneauZones, />Zones<\/button>/);
-  assert.match(panneauZones, />Paramétrer Zones<\/button>/);
-  assert.match(panneauZones, /id="recherche-zones-tarifs"/);
-  assert.match(panneauZones, /ouvrirTarifsNouvelleZone/);
-  assert.match(panneauZones, /zone\.code_zone !== nouvelleZone\.code_zone/);
-  assert.match(panneauZones, /Appliquer à toutes/);
-  assert.match(panneauZones, /Enregistrer tous les tarifs/);
-  assert.doesNotMatch(panneauZones, /Une paire vaut dans les deux sens|liste de référence|Pour créer ou organiser/);
-  assert.match(repository, /export async function enregistrerTarifsPairesPourZone/);
-  assert.match(repository, /\.upsert\(\s*lignes/);
-  assert.match(styles, /\.grille-tarifs-zone/);
+  assert.match(panneauZones, />Tarification<\/button>/);
+  assert.match(panneauZones, />Exceptions<\/button>/);
+  assert.match(panneauZones, /id="recherche-zones"/);
+  assert.match(panneauZones, /Tarif dans cette même zone/);
+  assert.doesNotMatch(panneauZones, /ouvrirTarifsNouvelleZone|Appliquer à toutes|Enregistrer tous les tarifs/);
+  assert.match(repository, /export async function listerGroupesTarifaires/);
+  assert.match(repository, /export async function enregistrerTarifGroupes/);
+  assert.match(styles, /\.grille-configuration-tarifs/);
   assert.match(styles, /\.recherche-zones-tarifs/);
+  assert.match(migration, /create table if not exists public\.groupes_tarifaires/);
+  assert.match(migration, /create table if not exists public\.tarifs_groupes/);
+  assert.match(migration, /tarif_intra_zone/);
+  assert.match(migration, /create or replace function public\.tarif_zone_zone/);
+  assert.match(migration, /zones_tarifs_paires[\s\S]*?tarif_intra_zone[\s\S]*?tarifs_groupes/);
 });
 
 test("les opérations remplacent les écrans fragmentés sans changer les RPC métier", async () => {
