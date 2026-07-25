@@ -1,3 +1,5 @@
+-- Justification et confirmation du hub de retour
+
 begin;
 
 alter table public.colis

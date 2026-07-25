@@ -1,3 +1,5 @@
+-- Identifiants metier dates et compteurs extensibles
+
 begin;
 
 create table if not exists public.compteurs_journaliers (
